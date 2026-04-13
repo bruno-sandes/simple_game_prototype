@@ -1,0 +1,30 @@
+rpg_adventure/
+├── main.py                 # Entry point
+├── requirements.txt        # Dependencies
+├── README.md              # Documentation
+├── config.py              # Constants/configuration
+├── game.py                # Main game loop and state management
+├── states/
+│   ├── __init__.py
+│   ├── customize.py       # Character customization screen
+│   ├── playing.py         # Main gameplay state
+│   ├── dialogue.py        # Dialogue state
+│   ├── inventory.py       # Inventory screen
+│   └── gameover.py        # Game over screen
+├── entities/
+│   ├── __init__.py
+│   ├── base.py            # AnimatedSprite base class
+│   ├── player.py          # Player class
+│   ├── monster.py         # Monster class
+│   ├── npc.py             # NPC class
+│   └── projectile.py      # Projectile class
+├── world/
+│   ├── __init__.py
+│   ├── world.py           # World/tilemap generation
+│   ├── item.py            # Collectible items
+│   └── particle.py        # Particle effects
+└── ui/
+    ├── __init__.py
+    ├── hud.py             # HUD rendering (HP bar, skill bar, etc.)
+    ├── minimap.py         # Mini-map
+    └── fonts.py           # Font management
