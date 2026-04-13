@@ -1,10 +1,7 @@
 """
-entities/player.py
-==================
-Classe Player — personagem controlado pelo utilizador.
+Class Player 
 
-Responsabilidades:
-  - Movimento por WASD (recebe dx/dy do estado de jogo)
+  - Movimento WASD (recebe dx/dy do estado de jogo)
   - Skill: disparo de projétil em direção ao mouse
   - Receber/tratar dano (com frames de invencibilidade)
   - Inventário de itens
@@ -17,10 +14,10 @@ import pygame
 from config import (
     PLAYER_SPEED, PLAYER_MAX_HP, PLAYER_SKILL_CD, PLAYER_INVINCIBLE,
     MAP_W, MAP_H, TILE_SIZE,
-    WHITE, RED, YELLOW, LIGHT_GRAY
+    WHITE, RED
 )
-from entities.base import AnimatedSprite
-from entities.projectile import Projectile
+from entities.sprite import AnimatedSprite
+from entities.skill import Skill
 
 
 class Player(AnimatedSprite):
@@ -33,7 +30,7 @@ class Player(AnimatedSprite):
         self.max_hp       = PLAYER_MAX_HP
         self.speed        = PLAYER_SPEED
         self.inventory    = []          # list[Item]  (objetos coletados)
-        self.projectiles  = []          # list[Projectile]
+        self.skills  = []          # lista[Skill]
         self.skill_cd     = 0           # frames até próximo disparo
         self.skill_max_cd = PLAYER_SKILL_CD
         self.invincible   = 0           # frames de invencibilidade
@@ -48,8 +45,8 @@ class Player(AnimatedSprite):
     def move(self, dx: float, dy: float, dt: float) -> None:
         """
         dx, dy  ∈ {-1, 0, 1} — direção desejada.
-        Normaliza a diagonal antes de aplicar velocidade.
-        Mantém o jogador dentro dos limites do mapa.
+        Normalizar antes de aplicar velocidade.
+        Manter player ns limites do mapa.
         """
         if dx != 0 and dy != 0:
             dx *= 0.7071
@@ -70,8 +67,8 @@ class Player(AnimatedSprite):
     # ------------------------------------------------------------------ #
     def use_skill(self, world_mx: float, world_my: float) -> bool:
         """
-        Dispara um projétil em direção a (world_mx, world_my).
-        Retorna True se o disparo foi realizado.
+        direção a (world_mx, world_my)
+        retorna True se o disparo foi realizado
         """
         if self.skill_cd > 0:
             return False
@@ -80,7 +77,7 @@ class Player(AnimatedSprite):
         dist = math.hypot(dx, dy)
         if dist < 1:
             return False
-        self.projectiles.append(Projectile(self.x, self.y, dx / dist, dy / dist))
+        self.skills.append(Skill(self.x, self.y, dx / dist, dy / dist))
         self.skill_cd = self.skill_max_cd
         return True
 
@@ -110,7 +107,7 @@ class Player(AnimatedSprite):
     #  XP / Nível                                                          #
     # ------------------------------------------------------------------ #
     def gain_xp(self, amount: int) -> bool:
-        """Adiciona XP e sobe de nível se necessário. Retorna True se subiu."""
+        """Add XP - UP level. retorna True se subiu."""
         self.xp += amount
         leveled = False
         while self.xp >= self.xp_next:
@@ -131,9 +128,9 @@ class Player(AnimatedSprite):
         if self.invincible  > 0: self.invincible  -= 1
         if self.damage_flash > 0: self.damage_flash -= 1
 
-        # Atualiza e remove projéteis mortos
-        self.projectiles = [p for p in self.projectiles if p.alive]
-        for p in self.projectiles:
+        # remove projéteis mortos
+        self.skils = [p for p in self.skils if p.alive]
+        for p in self.skils:
             p.update(dt)
 
     # ------------------------------------------------------------------ #
@@ -155,7 +152,7 @@ class Player(AnimatedSprite):
         surface.blit(ns, (sx - ns.get_width() // 2, sy - self.size - 30))
 
         # Projéteis
-        for p in self.projectiles:
+        for p in self.skils:
             p.draw(surface, cam_x, cam_y)
 
     @property

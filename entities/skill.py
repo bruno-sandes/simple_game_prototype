@@ -1,37 +1,33 @@
 """
-entities/projectile.py
-======================
-Projétil disparado pela skill do jogador.
+Skill do jogador.
 
-Criado com direção normalizada, voa em linha reta e
-desaparece ao atingir um monstro ou esgotar lifetime.
+Linha reta e desaparece ao atingir um monstro ou acabar
 """
 
 import pygame
 from config import (
-    PROJECTILE_SPEED, PROJECTILE_DAMAGE, PROJECTILE_LIFE,
+    SKILL_SPEED, SKILL_DAMAGE, SKILL_LIFE,
     YELLOW, WHITE
 )
 
-
-class Projectile:
+class Skill:
     """
     Parâmetros:
-        x, y    — posição de origem (coordenadas do mundo)
-        dx, dy  — direção normalizada
-        damage  — dano causado ao acertar
+        x, y    — posição de origem (coord.)
+        dx, dy  — direção 
+        damage  — dano causado
         color   — cor visual
     """
 
     def __init__(self, x: float, y: float, dx: float, dy: float,
-                 damage: int = PROJECTILE_DAMAGE,
+                 damage: int = SKILL_DAMAGE,
                  color: tuple = YELLOW):
         self.x       = float(x)
         self.y       = float(y)
         self.dx      = dx
         self.dy      = dy
-        self.speed   = PROJECTILE_SPEED
-        self.lifetime= PROJECTILE_LIFE
+        self.speed   = SKILL_SPEED
+        self.lifetime= SKILL_LIFE
         self.radius  = 8
         self.damage  = damage
         self.color   = color

@@ -1,0 +1,33 @@
+Requisitos Funcionais
+
+Player e Movimentação 2D
+Movimentação com teclado: teclas WASD
+Colisão com obstáculos do mapa
+Atributos mínimos: posição, velocidade e pontos de vida (HP) (opcional)
+Coleta de Materiais
+
+Pelo menos 4 tipos de material distintos (ex.: erva, minério, madeira, gema)
+Coletados automaticamente ao contato ou por tecla de interação
+Coleta reflete imediatamente no inventário
+NPCs e Sistema de Diálogos
+
+Pelo menos 3 NPCs com identidade visual e nome distintos
+Cada NPC com árvore de diálogo própria (estrutura de dados árvore)**
+Nós com: texto, interlocutor e lista de opções (arestas para nós filhos)**
+Ao menos um nó executa uma ação sobre o estado do jogo (ex.: entregar item)**
+Diálogo ativado por proximidade + tecla de interação**
+Inventário com Métodos de Organização**
+
+Armazena materiais coletados agrupando por tipo e acumulando quantidades**
+Ordenação ativa refletida na interface**
+Pathfinder via Clique (Bônus) ----?
+
+Clique no mapa move o player automaticamente****
+Mapa com obstáculos que o algoritmo deve contornar
+Caminho calculado visualmente indicado na tela
+Requisitos Técnicos
+
+--------------------Estruturas de dados obrigatórias: árvore (diálogos), Map/dicionário (inventário), array/lista (grade do mapa)---------------
+Separação de responsabilidades: entidades, sistemas e dados em módulos distintos
+Código deve compilar e executar sem erros
+Repositório público no GitHub com README contendo instruções de execução, controles e estrutura de pastas

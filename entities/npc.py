@@ -1,25 +1,19 @@
 """
-entities/npc.py
-===============
-Classe NPC — personagem não-jogável com diálogo e ação.
-
-Comportamentos:
-  - Flutuação suave (bob via seno)
   - Diálogo com múltiplas falas (avanço por tecla)
   - Entrega um item ao jogador na primeira conversa
-  - Exibe dica [E] quando o jogador está próximo
+  - Exibe dica dialogo [E] quando próximo
 """
 
 import math
 import pygame
 from config import NPC_INTERACT_RANGE, YELLOW, WHITE, BLACK
-from entities.base import AnimatedSprite
+from entities.sprite import AnimatedSprite
 
 
 class NPC(AnimatedSprite):
     """
-    Crie instâncias com posição, nome e (opcionalmente) lista de diálogos.
-    O Game verifica a distância e chama .interact() ao pressionar E.
+    instâncias com posição, nome e lista de diálogos.
+    jogo verifica a distância e chama .interact() ao pressionar E.
     """
 
     DEFAULT_DIALOGUES = [
@@ -32,7 +26,7 @@ class NPC(AnimatedSprite):
     ]
 
     def __init__(self, x: float, y: float,
-                 name: str = "Aldeão Sábio",
+                 name: str = "Sábio",
                  dialogues: list[str] | None = None):
         super().__init__((220, 170, 100), x, y, size=20)
         self.name           = name

@@ -1,13 +1,11 @@
 """
-entities/base.py
-================
-Classe base AnimatedSprite.
+AnimatedSprite.
 
-Todos os personagens (Jogador, Monstros, NPC) herdam daqui.
-Implementa o desenho procedural com pygame.draw:
-  - Cabeça circular
-  - Corpo retangular
-  - Braços e pernas com animação senoidal de caminhada
+player mob e npc
+Implementar o desenho procedural com pygame.draw:
+  - Cabeça circ.
+  - Corpo retang.
+  - Braços e pernas com animação caminhada
 """
 
 import math
@@ -17,8 +15,8 @@ from config import WHITE, BLACK
 
 class AnimatedSprite:
     """
-    Personagem desenhado com formas geométricas básicas.
-    Animação de caminhada gerada por math.sin no anim_timer.
+    formas geométricas básicas
+    caminhada gerada por math.sin no anim_timer. - all base
     """
 
     def __init__(self, color: tuple, x: float, y: float, size: int = 22):
@@ -30,36 +28,33 @@ class AnimatedSprite:
         self.facing: int = 1        # 1 = direita, -1 = esquerda
         self.moving: bool = False
 
-    # ------------------------------------------------------------------ #
-    #  Desenho procedural                                                  #
-    # ------------------------------------------------------------------ #
+    #  Desenho procedural  #
     def _draw_character(self, surface: pygame.Surface, sx: int, sy: int,
                         color: tuple) -> None:
         """
-        Desenha o personagem centrado em (sx, sy) na tela.
-        - sy representa o centro do corpo.
-        - Pernas ficam abaixo do corpo; cabeça acima.
+        Desenha o personagem centrado em (sX, sY) na tela.
+        - sy centro do corpo.
         """
         s = self.size
         t = self.anim_timer
         leg_color  = tuple(max(0, c - 40) for c in color)
         arm_color  = tuple(max(0, c - 20) for c in color)
 
-        # ── Animação de caminhada ──────────────────────────────────────
+        # ── Animç. caminhada 
         swing     = int(math.sin(t * 8) * 7) if self.moving else 0
         arm_swing = int(math.sin(t * 8 + math.pi) * 4) if self.moving else 0
 
-        # ── Pernas ────────────────────────────────────────────────────
+        # ── Pernas 
         pygame.draw.rect(surface, leg_color,
             (sx - s // 3, sy + s // 2, s // 3, 12 + swing), border_radius=3)
         pygame.draw.rect(surface, leg_color,
             (sx,          sy + s // 2, s // 3, 12 - swing), border_radius=3)
 
-        # ── Corpo ─────────────────────────────────────────────────────
+        # ── Corpo 
         pygame.draw.rect(surface, color,
             (sx - s // 2, sy - s // 2, s, s), border_radius=5)
 
-        # ── Braços ────────────────────────────────────────────────────
+        # ── Braços 
         pygame.draw.rect(surface, arm_color,
             (sx - s // 2 - 6, sy - s // 4 + arm_swing, 6, s // 2),
             border_radius=2)
@@ -67,25 +62,25 @@ class AnimatedSprite:
             (sx + s // 2,     sy - s // 4 - arm_swing, 6, s // 2),
             border_radius=2)
 
-        # ── Cabeça ────────────────────────────────────────────────────
+        # ── Cabeça 
         head_y = sy - s // 2 - s // 2
         pygame.draw.circle(surface, color, (sx, head_y), s // 2)
 
-        # ── Olhos ─────────────────────────────────────────────────────
+        # ── Olhos 
         eye_x = sx + (5 * self.facing)
         pygame.draw.circle(surface, WHITE, (eye_x, head_y - 2), 4)
         pygame.draw.circle(surface, BLACK, (eye_x + self.facing, head_y - 2), 2)
 
     # ------------------------------------------------------------------ #
-    #  Update base                                                         #
+    #  Update sprite                                                     #
     # ------------------------------------------------------------------ #
     def update(self, dt: float) -> None:
-        """Avança o timer de animação apenas enquanto em movimento."""
+        """Avançar timer de animação enquanto em movimento."""
         if self.moving:
             self.anim_timer += dt
 
     # ------------------------------------------------------------------ #
-    #  Rect auxiliar (override nas subclasses se necessário)               #
+    #  Rect auxiliar (override nas subclasses se necessário)             #
     # ------------------------------------------------------------------ #
     def get_rect(self) -> pygame.Rect:
         half = 16

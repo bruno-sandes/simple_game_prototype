@@ -28,3 +28,5 @@ rpg_adventure/
     ├── hud.py             # HUD rendering (HP bar, skill bar, etc.)
     ├── minimap.py         # Mini-map
     └── fonts.py           # Font management
+
+

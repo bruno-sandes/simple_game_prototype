@@ -1,28 +1,22 @@
 """
-entities/monster.py
-===================
-Classe Monster — inimigos que perseguem o jogador.
-
-Tipos disponíveis (definidos em config.MONSTER_DEFS):
-  slime, goblin, ghost, orc
-
-IA simples: se dentro do aggro_range, move-se em linha reta
-ao jogador e ataca ao encostar. Respeita cooldown de ataque.
+Tipos definidos em config.MOB_DEFS.
+IA base: dentro do aggro_range, move em linha reta
+ao jogador e ataca ao encostar. Cooldown.
 """
 
 import pygame
 from config import (
-    MONSTER_DEFS, MONSTER_AGGRO_RANGE, MONSTER_ATTACK_CD,
+    MOB_DEFS, MOB_AGGRO_RANGE, MOB_ATTACK_CD,
     GREEN, RED, WHITE
 )
-from entities.base import AnimatedSprite
+from entities.sprite import AnimatedSprite
 import math
 
 
-class Monster(AnimatedSprite):
+class Mob(AnimatedSprite):
 
     def __init__(self, x: float, y: float, monster_type: str = "slime"):
-        cfg = MONSTER_DEFS.get(monster_type, MONSTER_DEFS["slime"])
+        cfg = MOB_DEFS.get(monster_type, MOB_DEFS["slime"])
         super().__init__(cfg["color"], x, y, size=cfg["size"])
         self.monster_type = monster_type
         self.hp           = cfg["hp"]
@@ -33,7 +27,7 @@ class Monster(AnimatedSprite):
         self.dead         = False
         self.attack_cd    = 0
         self.damage_flash = 0
-        self.aggro_range  = MONSTER_AGGRO_RANGE
+        self.aggro_range  = MOB_AGGRO_RANGE
 
     # ------------------------------------------------------------------ #
     #  IA de perseguição                                                   #
@@ -69,7 +63,7 @@ class Monster(AnimatedSprite):
         # Ataque ao encostar no jogador
         if dist < 32 and self.attack_cd <= 0:
             player.take_damage(self.damage)
-            self.attack_cd = MONSTER_ATTACK_CD
+            self.attack_cd = MOB_ATTACK_CD
 
         # Flash de dano
         if self.damage_flash > 0:

@@ -1,42 +1,39 @@
 """
-config.py
-=========
-Todas as constantes globais do jogo:
-  - Dimensões de tela e mapa
+Constantes globais do jogo:
+  - Dimensões
   - Cores
   - Estados do jogo
-  - Configurações de gameplay
+  - Config da gameplay
 
-Importe daqui em qualquer módulo. Não importa nada do projeto.
 """
 
-# ─── Tela ─────────────────────────────────────────────────────
+# ─── Tela 
 SCREEN_W: int = 1024
 SCREEN_H: int = 768
 FPS: int = 60
-TITLE: str = "⚔ RPG Adventure"
+TITLE: str = "+ RPGame Lite +"
 
-# ─── Mapa ─────────────────────────────────────────────────────
+# ─── Mapa 
 TILE_SIZE: int  = 40
 MAP_W: int      = 50          # tiles horizontais
 MAP_H: int      = 50          # tiles verticais
 
-# ─── Gameplay ─────────────────────────────────────────────────
+# ─── Gameplay
 PLAYER_SPEED: int        = 160
 PLAYER_MAX_HP: int       = 100
 PLAYER_SKILL_CD: int     = 55   # frames
-PLAYER_INVINCIBLE: int   = 70   # frames após tomar dano
-PROJECTILE_SPEED: int    = 320
-PROJECTILE_DAMAGE: int   = 30
-PROJECTILE_LIFE: int     = 140  # frames
-MONSTER_AGGRO_RANGE: int = 380
-MONSTER_ATTACK_CD: int   = 90
-MONSTER_RESPAWN_COUNT: int = 5
+PLAYER_INVINCIBLE: int   = 70   # frames com dano
+SKILL_SPEED: int    = 320
+SKILL_DAMAGE: int   = 30
+SKILL_LIFE: int     = 140  # frames skill
+MOB_AGGRO_RANGE: int = 380
+MOB_ATTACK_CD: int   = 90
+MOB_RESPAWN_COUNT: int = 5
 NPC_INTERACT_RANGE: int  = 90
 ITEM_COLLECT_RADIUS: int = 14
-CAMERA_LERP: float       = 8.0  # suavidade da câmera
+CAMERA_LERP: float       = 8.0  # suav. camera
 
-# ─── Cores ────────────────────────────────────────────────────
+# ─── Cores
 WHITE       = (255, 255, 255)
 BLACK       = (0,   0,   0)
 RED         = (220, 50,  50)
@@ -53,7 +50,7 @@ TEAL        = (50,  180, 180)
 PURPLE      = (160, 60,  200)
 LIGHT_BLUE  = (100, 190, 255)
 
-# ─── Paleta de cores do jogador (customização) ────────────────
+# ─── Cores do jogador (custom) 
 PLAYER_COLORS = [
     (70,  130, 210),  # Azul
     (210, 70,  70),   # Vermelho
@@ -63,35 +60,38 @@ PLAYER_COLORS = [
     (70,  200, 200),  # Ciano
     (220, 130, 50),   # Laranja
     (50,  180, 180),  # Turquesa
+    (255, 255, 255),  # Branco
+    (150, 150, 150),  # Cinza
+    (0,    0,   0),   # Preto
 ]
 
-# ─── Estados do jogo ──────────────────────────────────────────
+# ─── Estados do jogo 
 STATE_CUSTOMIZE = "customize"
 STATE_PLAYING   = "playing"
 STATE_DIALOGUE  = "dialogue"
 STATE_INVENTORY = "inventory"
 STATE_GAMEOVER  = "gameover"
 
-# ─── Tipos de monstro ─────────────────────────────────────────
-MONSTER_DEFS = {
+# ─── Tipos de monstro 
+MOB_DEFS = {
     "slime":  {"color": (60,  200, 80),  "hp": 50,  "speed": 65,  "dmg": 8,  "xp": 20, "size": 20},
     "goblin": {"color": (200, 100, 50),  "hp": 70,  "speed": 90,  "dmg": 12, "xp": 30, "size": 22},
     "ghost":  {"color": (160, 160, 230), "hp": 40,  "speed": 110, "dmg": 15, "xp": 35, "size": 18},
     "orc":    {"color": (80,  140, 80),  "hp": 120, "speed": 55,  "dmg": 20, "xp": 50, "size": 26},
 }
 
-# ─── Tipos de item ────────────────────────────────────────────
+# ─── Tipos de item 
 ITEM_DEFS = {
     "hp_potion": {"color": (255, 80,  80),  "label": "Poção de Vida", "icon": "HP"},
     "gem":       {"color": (80,  200, 255), "label": "Gema",          "icon": "GE"},
     "sword":     {"color": (200, 210, 255), "label": "Espada",        "icon": "SW"},
     "shield":    {"color": (255, 200, 80),  "label": "Escudo",        "icon": "SH"},
-    "key":       {"color": (255, 255, 100), "label": "Chave Mágica",  "icon": "KY"},
+    "key":       {"color": (255, 255, 100), "label": "Chave",  "icon": "KY"},
     "coin":      {"color": (255, 220, 0),   "label": "Moeda",         "icon": "$$"},
     "scroll":    {"color": (220, 180, 120), "label": "Pergaminho",    "icon": "SC"},
 }
 
-# ─── Tiles do mapa ────────────────────────────────────────────
+# ─── Tiles do mapa 
 TILE_GRASS = 0
 TILE_WATER = 1
 TILE_TREE  = 2
