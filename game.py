@@ -300,10 +300,20 @@ class Game:
         elif self.state in (STATE_PLAYING, STATE_INVENTORY):
             self._update_playing(dt)
 
-        elif self.state == STATE_DIALOGUE:
-            # Atualiza NPCs mas nao o mundo
-            for npc in self.npcs:
-                npc.update(dt)
+        if self.state == STATE_DIALOGUE:
+            if event.type == pygame.KEYDOWN:
+        # Se apertou um número de 1 a 9
+                if pygame.K_1 <= event.key <= pygame.K_9:
+            # Converte a tecla no índice da lista (ex: K_1 vira índice 0)
+                    escolha_idx = event.key - pygame.K_1 
+            
+                if self.npc_ativo: # (ou qualquer que seja sua variável do NPC atual)
+                    self.npc_ativo.tree.select(escolha_idx)
+                
+                # Verifica se a conversa acabou
+                if self.npc_ativo.tree.done:
+                    self.state = STATE_PLAYING
+                    self.npc_ativo = None
 
     def _update_playing(self, dt: float) -> None:
         keys = pygame.key.get_pressed()
