@@ -18,6 +18,7 @@ from config import (
 )
 from entities.sprite import AnimatedSprite
 from entities.skill import Skill
+from systems.inventory_manager import InventoryManager
 
 
 class Player(AnimatedSprite):
@@ -29,8 +30,8 @@ class Player(AnimatedSprite):
         self.hp           = PLAYER_MAX_HP
         self.max_hp       = PLAYER_MAX_HP
         self.speed        = PLAYER_SPEED
-        self.inventory    = []          # list[Item]  (objetos coletados)
-        self.skills  = []          # lista[Skill]
+        self.inventory    = InventoryManager()          # list[Item]  (objetos coletados)
+        self.skills       = []          # lista[Skill]
         self.skill_cd     = 0           # frames até próximo disparo
         self.skill_max_cd = PLAYER_SKILL_CD
         self.invincible   = 0           # frames de invencibilidade
@@ -129,8 +130,8 @@ class Player(AnimatedSprite):
         if self.damage_flash > 0: self.damage_flash -= 1
 
         # remove projéteis mortos
-        self.skils = [p for p in self.skils if p.alive]
-        for p in self.skils:
+        self.skills = [p for p in self.skills if p.alive]
+        for p in self.skills:
             p.update(dt)
 
     # ------------------------------------------------------------------ #

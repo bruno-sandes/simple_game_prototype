@@ -90,10 +90,11 @@ def draw_messages(surface: pygame.Surface, messages: list) -> None:
 # ------------------------------------------------------------------ #
 _CONTROLS = [
     "WASD   → Mover",
-    "E      → Falar com NPC",
+    "E      → Interagir",
     "Click  → Skill",
     "I      → Inventário",
-    "F      → Usar poção",
+    "F      → Usar item",
+    "1, 2, 3 → Selecionar falas",
     "ESC    → Menu",
 ]
 
