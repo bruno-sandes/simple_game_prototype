@@ -93,14 +93,12 @@ class Player(AnimatedSprite):
     # ------------------------------------------------------------------ #
     #  Inventário                                                          #
     # ------------------------------------------------------------------ #
-    def use_potion(self) -> str | None:
-        """Usa a primeira Poção de Vida do inventário. Retorna msg ou None."""
-        for item in self.inventory:
-            if item.item_type == "hp_potion":
-                self.hp = min(self.max_hp, self.hp + 40)
-                self.inventory.remove(item)
-                return "+40 HP  (Poção de Vida usada)"
-        return None
+    def use_potion(self) -> bool:
+        """
+        FIX 2: delega para InventoryManager.use_potion() que opera no dict.
+        Retorna True se a poção foi usada.
+        """
+        return self.inventory.use_potion()
 
     # ------------------------------------------------------------------ #
     #  XP / Nível                                                          #
@@ -151,7 +149,7 @@ class Player(AnimatedSprite):
         surface.blit(ns, (sx - ns.get_width() // 2, sy - self.size - 30))
 
         # Projéteis
-        for p in self.skils:
+        for p in self.skills:
             p.draw(surface, cam_x, cam_y)
 
     @property

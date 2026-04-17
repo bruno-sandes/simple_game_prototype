@@ -65,7 +65,10 @@ def draw_player_info(surface: pygame.Surface, player) -> None:
     info = f"{player.name}  |  Nível {player.level}  |  XP: {player.xp}/{player.xp_next}"
     surface.blit(fonts.sm.render(info, True, YELLOW), (10, 54))
 
-    inv_txt = f"Inventário: {len(player.inventory)} itens  [I]"
+    # FIX: era len(player.inventory) — InventoryManager não tem __len__
+    # .total retorna soma de todas as quantidades no dict
+    n_itens = player.inventory.total
+    inv_txt = f"Inventário: {n_itens} item(ns)  [I]"
     surface.blit(fonts.xs.render(inv_txt, True, LIGHT_GRAY), (10, 72))
 
 

@@ -11,11 +11,12 @@ from config import (
     MOB_RESPAWN_COUNT,
 )
 
+from ui.fonts     import init_fonts, fonts
 from ui.hud       import draw_hud
 from ui.map       import MiniMap
 from ui.dialogue  import draw_dialogue
 from ui.inventory import draw_inventory
-from ui.fonts     import init_fonts
+
 
 from entities         import Player, Mob
 from entities.npc     import create_tutorial_npc
@@ -45,10 +46,7 @@ class Game:
         # Entidades (inicializadas em _setup_world)
         self.player   = Player
         self.world    = None
-        self.npcs     = [
-            create_tutorial_npc(200, 200, self.player.inventory),
-            create_tutorial_npc(1200, 800, self.player.inventory)
-        ]
+        self.npcs     = []
         self.mobs     = []
         self.items    = []
         self.particles: list[Particle] = []
@@ -78,10 +76,15 @@ class Game:
         self._movement  = MovementController(self.world)
         self.cam_x      = float(cx - SCREEN_W // 2)
         self.cam_y      = float(cy - SCREEN_H // 2)
+        
+        self.npcs = [
+            create_tutorial_npc(cx + 150, cy - 120, self.player.inventory),
+            create_tutorial_npc(cx - 200, cy +  90, self.player.inventory),
+        ]
 
         # 3 NPCs com arvores de dialogo distintas
-        npc_guia = create_tutorial_npc(150, 150, self.player.inventory)
-        self.npcs.append(npc_guia)
+        #npc_guia = create_tutorial_npc(150, 150, self.player.inventory)
+        #self.npcs.append(npc_guia)
 
         # Mobs espalhados
         mob_types = ["slime", "goblin", "ghost", "orc"]
@@ -227,15 +230,14 @@ class Game:
         if key in choice_keys and not node.is_leaf:
             idx = choice_keys[key]
             if idx < len(node.choices):
-                msg = tree.select(idx, inv)
-                if msg:
-                    self._msg(msg)
+                tree.select(idx)
+            
 
         elif key in (pygame.K_e, pygame.K_RETURN, pygame.K_SPACE):
-            # Avanco automatico (1 opcao ou no folha)
-            msg = tree.advance(inv)
-            if msg:
-                self._msg(msg)
+            if node.is_leaf:
+                tree.done = True
+            elif len(node.choices) == 1:
+                tree.select(0)
 
         if tree.done:
             self.active_npc = None
@@ -252,7 +254,7 @@ class Game:
                 raise SystemExit
 
     # ==================================================================
-    # FADE / TRANSICAO
+    # TRANSICAO
     # ==================================================================
     def _begin_fade(self, next_state: str) -> None:
         self._fade       = ScreenFade(fade_in=False, speed=8)
@@ -280,19 +282,8 @@ class Game:
             self._update_playing(dt)
 
         if self.state == STATE_DIALOGUE:
-            if event.type == pygame.KEYDOWN:
-        # Se apertou um número de 1 a 9
-                if pygame.K_1 <= event.key <= pygame.K_9:
-            # Converte a tecla no índice da lista (ex: K_1 vira índice 0)
-                    escolha_idx = event.key - pygame.K_1 
-            
-                if self.npc_ativo: # (ou qualquer que seja sua variável do NPC atual)
-                    self.npc_ativo.tree.select(escolha_idx)
-                
-                # Verifica se a conversa acabou
-                if self.npc_ativo.tree.done:
-                    self.state = STATE_PLAYING
-                    self.npc_ativo = None
+            for npc in self.npcs:
+                npc.update(dt)
 
     def _update_playing(self, dt: float) -> None:
         keys = pygame.key.get_pressed()
@@ -479,13 +470,8 @@ class Game:
             running = self.handle_events()
             self.update(dt)
             self.draw()
-    
+
+
 if __name__ == "__main__":
-    # 1. Inicializa o motor do Pygame
     pygame.init()
-    
-    # 2. Cria o objeto do jogo
-    meu_jogo = Game()
-    
-    # 3. Entra no loop que impede o programa de fechar
-    meu_jogo.run()
+    Game().run()
