@@ -40,9 +40,7 @@ class Player(AnimatedSprite):
         self.level        = 1
         self.xp_next      = 60         # XP necessário para próximo nível
 
-    # ------------------------------------------------------------------ #
     #  Movimento                                                           #
-    # ------------------------------------------------------------------ #
     def move(self, dx: float, dy: float, dt: float) -> None:
         """
         dx, dy  ∈ {-1, 0, 1} — direção desejada.

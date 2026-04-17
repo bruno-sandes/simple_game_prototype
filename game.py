@@ -1,28 +1,3 @@
-"""
-game.py
-=======
-Classe Game - orquestra o loop principal e a maquina de estados.
-
-Estados:
-    STATE_CUSTOMIZE  -> CustomizeScreen
-    STATE_PLAYING    -> mundo, entidades, MovementController
-    STATE_DIALOGUE   -> DialogueTree do NPC ativo
-    STATE_INVENTORY  -> overlay do InventoryManager
-    STATE_GAMEOVER   -> tela de fim de jogo
-
-Delegacoes:
-    screens/custom.py     -> renderizacao e eventos da tela de custom
-    screens/movement.py   -> WASD + pathfinder por clique
-    screens/animation.py  -> ScreenFade, LevelUpEffect
-    UI/hud.py             -> barras e mensagens
-    UI/map.py             -> minimap
-    UI/dialogue.py        -> caixa de dialogo com choices
-    UI/inventory.py       -> grade de inventario
-    systems/              -> collision, pathfinder, inventory_manager
-    entities/             -> Player, Mob, NPC (via fabricas)
-    world/                -> World, Item, Particle
-"""
-
 import random
 import math
 import pygame
@@ -36,14 +11,14 @@ from config import (
     MOB_RESPAWN_COUNT,
 )
 
-from UI.fonts     import init_fonts, fonts
-from UI.hud       import draw_hud
-from UI.map       import MiniMap
-from UI.dialogue  import draw_dialogue
-from UI.inventory import draw_inventory
+from ui.hud       import draw_hud
+from ui.map       import MiniMap
+from ui.dialogue  import draw_dialogue
+from ui.inventory import draw_inventory
+from ui.fonts     import init_fonts
 
 from entities         import Player, Mob
-from entities.npc import create_tutorial_npc
+from entities.npc     import create_tutorial_npc
 from world import World, Item, Particle
 
 from screens.custom    import CustomizeScreen
@@ -56,6 +31,7 @@ from systems.inventory_manager import InventoryManager
 class Game:
 
     def __init__(self):
+        pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
         pygame.display.set_caption(TITLE)
         self.clock  = pygame.time.Clock()
@@ -67,9 +43,12 @@ class Game:
         self._next_state: str | None  = None
 
         # Entidades (inicializadas em _setup_world)
-        self.player   = None
+        self.player   = Player
         self.world    = None
-        self.npcs     = []
+        self.npcs     = [
+            create_tutorial_npc(200, 200, self.player.inventory),
+            create_tutorial_npc(1200, 800, self.player.inventory)
+        ]
         self.mobs     = []
         self.items    = []
         self.particles: list[Particle] = []
@@ -500,3 +479,13 @@ class Game:
             running = self.handle_events()
             self.update(dt)
             self.draw()
+    
+if __name__ == "__main__":
+    # 1. Inicializa o motor do Pygame
+    pygame.init()
+    
+    # 2. Cria o objeto do jogo
+    meu_jogo = Game()
+    
+    # 3. Entra no loop que impede o programa de fechar
+    meu_jogo.run()

@@ -24,7 +24,7 @@ from config import (
     SCREEN_W, SCREEN_H, PLAYER_COLORS,
     WHITE, BLACK, YELLOW, GRAY, DARK_GRAY, LIGHT_GRAY, GREEN
 )
-from UI.fonts import fonts
+from ui.fonts import fonts
 
 
 class CustomizeScreen:
