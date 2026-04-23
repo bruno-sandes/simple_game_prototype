@@ -20,13 +20,16 @@ from config import (
     WHITE, BLACK, RED, GREEN, ORANGE, YELLOW,
     GRAY, DARK_GRAY, LIGHT_GRAY, LIGHT_BLUE
 )
-from ui.fonts import fonts
+
+# IMPORT GLOBAL REMOVIDO DAQUI
 
 
 # ------------------------------------------------------------------ #
 #  Barra de HP                                                         #
 # ------------------------------------------------------------------ #
 def draw_hp_bar(surface: pygame.Surface, player) -> None:
+    from ui.fonts import fonts  # IMPORT MOVIDO PARA CÁ
+    
     bx, by, bw, bh = 10, 10, 220, 22
     pygame.draw.rect(surface, (80, 0, 0),      (bx, by, bw, bh), border_radius=5)
 
@@ -44,6 +47,8 @@ def draw_hp_bar(surface: pygame.Surface, player) -> None:
 #  Barra de cooldown da skill                                          #
 # ------------------------------------------------------------------ #
 def draw_skill_bar(surface: pygame.Surface, player) -> None:
+    from ui.fonts import fonts  # IMPORT MOVIDO PARA CÁ
+    
     bx, by, bw, bh = 10, 37, 220, 12
     ready  = player.skill_cd <= 0
     ratio  = 1.0 - player.skill_cd / player.skill_max_cd
@@ -59,9 +64,11 @@ def draw_skill_bar(surface: pygame.Surface, player) -> None:
 
 
 # ------------------------------------------------------------------ #
-#  Info do jogador                                                      #
+#  Info do jogador                                                     #
 # ------------------------------------------------------------------ #
 def draw_player_info(surface: pygame.Surface, player) -> None:
+    from ui.fonts import fonts  # IMPORT MOVIDO PARA CÁ
+    
     info = f"{player.name}  |  Nível {player.level}  |  XP: {player.xp}/{player.xp_next}"
     surface.blit(fonts.sm.render(info, True, YELLOW), (10, 54))
 
@@ -76,6 +83,7 @@ def draw_player_info(surface: pygame.Surface, player) -> None:
 #  Mensagens flutuantes                                                #
 # ------------------------------------------------------------------ #
 def draw_messages(surface: pygame.Surface, messages: list) -> None:
+    from ui.fonts import fonts  # IMPORT MOVIDO PARA CÁ
     """
     messages: lista de [texto, timer] gerenciada pelo Game.
     Timer vai de 200 → 0; alpha proporcional.
@@ -89,7 +97,7 @@ def draw_messages(surface: pygame.Surface, messages: list) -> None:
 
 
 # ------------------------------------------------------------------ #
-#  Painel de controles                                                  #
+#  Painel de controles                                                 #
 # ------------------------------------------------------------------ #
 _CONTROLS = [
     "WASD   → Mover",
@@ -102,13 +110,15 @@ _CONTROLS = [
 ]
 
 def draw_controls(surface: pygame.Surface) -> None:
+    from ui.fonts import fonts  # IMPORT MOVIDO PARA CÁ
+    
     for i, txt in enumerate(_CONTROLS):
         s = fonts.xs.render(txt, True, (170, 170, 170))
         surface.blit(s, (10, SCREEN_H - 95 + i * 14))
 
 
 # ------------------------------------------------------------------ #
-#  Função única para chamar tudo                                        #
+#  Função única para chamar tudo                                       #
 # ------------------------------------------------------------------ #
 def draw_hud(surface: pygame.Surface, player, messages: list) -> None:
     """Chama todos os componentes do HUD em ordem."""

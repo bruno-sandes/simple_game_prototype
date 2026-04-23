@@ -53,7 +53,6 @@ class Game:
         self.messages:  list[list]     = []  # [[texto, timer], ...]
         self.active_npc = None
         self.show_inv   = False
-
         self.cam_x = 0.0
         self.cam_y = 0.0
         self._movement: MovementController | None = None
@@ -68,7 +67,7 @@ class Game:
         cy = MAP_H * TILE_SIZE // 2
         seed = random.randint(1, 99999)
 
-        # Player com InventoryManager
+        # 1º O Player é criado PRIMEIRO e recebe o inventário
         self.player = Player(float(cx), float(cy), name, color)
         self.player.inventory = InventoryManager()
 
@@ -77,14 +76,11 @@ class Game:
         self.cam_x      = float(cx - SCREEN_W // 2)
         self.cam_y      = float(cy - SCREEN_H // 2)
         
+        # 2º Agora sim criamos os NPCs passando a mochila pronta do Player
         self.npcs = [
             create_tutorial_npc(cx + 150, cy - 120, self.player.inventory),
             create_tutorial_npc(cx - 200, cy +  90, self.player.inventory),
         ]
-
-        # 3 NPCs com arvores de dialogo distintas
-        #npc_guia = create_tutorial_npc(150, 150, self.player.inventory)
-        #self.npcs.append(npc_guia)
 
         # Mobs espalhados
         mob_types = ["slime", "goblin", "ghost", "orc"]
@@ -93,7 +89,7 @@ class Game:
             mx, my = self._random_spawn(cx, cy, min_dist=250)
             self.mobs.append(Mob(mx, my, random.choice(mob_types)))
 
-        # Itens coletaveis (pelo menos 4 tipos distintos de materiais)
+        # Itens coletaveis
         mat_types = ["gem", "coin", "scroll", "hp_potion", "sword", "shield", "key"]
         self.items = []
         for _ in range(22):
@@ -263,11 +259,18 @@ class Game:
     def _update_fade(self) -> None:
         if self._fade is None:
             return
+            
         done = self._fade.update()
+        
         if done:
-            self.state       = self._next_state
-            self._fade       = ScreenFade(fade_in=True, speed=8)
-            self._next_state = None
+            # Se _next_state tem algo, significa que terminamos de ESCURECER a tela
+            if self._next_state is not None:
+                self.state       = self._next_state
+                self._fade       = ScreenFade(fade_in=True, speed=8)
+                self._next_state = None
+            # Se _next_state é None, significa que terminamos de CLAREAR a tela
+            else:
+                self._fade = None  # Desliga o efeito e deixa o jogo rolar
 
     # ==================================================================
     # UPDATE
@@ -412,6 +415,9 @@ class Game:
         # Itens
         for item in self.items:
             item.draw(self.screen, cx, cy)
+            
+        # Player
+        self.player.draw(self.screen, cx, cy)
 
         # NPCs
         for npc in self.npcs:
@@ -421,9 +427,6 @@ class Game:
         # Mobs
         for mob in self.mobs:
             mob.draw(self.screen, cx, cy)
-
-        # Player
-        self.player.draw(self.screen, cx, cy)
 
         # Particulas
         for p in self.particles:
@@ -436,27 +439,26 @@ class Game:
 
     # ── Game over ─────────────────────────────────────────────────────
     def _draw_gameover(self) -> None:
+        from ui.fonts import fonts # IMPORT PROTEGIDO AQUI DENTRO!
+        
         self.screen.fill((8, 4, 4))
         p = self.player
-        font_xl = fonts.xl
-        font_md = fonts.md
-        font_xs = fonts.xs
 
-        go = font_xl.render("GAME OVER", True, RED)
+        go = fonts.xl.render("GAME OVER", True, RED)
         self.screen.blit(go, (SCREEN_W // 2 - go.get_width() // 2, SCREEN_H // 2 - 90))
-
+ 
         lines = [
-            f"Nivel alcancado: {p.level}",
+            f"Nível alcançado: {p.level}",
             f"XP acumulado:    {p.xp}",
             f"Tipos coletados: {p.inventory.unique_types}",
             f"Total de itens:  {p.inventory.total}",
         ]
         for i, ln in enumerate(lines):
-            s = font_md.render(ln, True, LIGHT_GRAY)
+            s = fonts.md.render(ln, True, LIGHT_GRAY)
             self.screen.blit(s, (SCREEN_W // 2 - s.get_width() // 2,
                                   SCREEN_H // 2 - 10 + i * 30))
-
-        hint = font_xs.render("R = reiniciar     ESC = sair", True, GRAY)
+ 
+        hint = fonts.xs.render("R = reiniciar     ESC = sair", True, GRAY)
         self.screen.blit(hint, (SCREEN_W // 2 - hint.get_width() // 2,
                                  SCREEN_H // 2 + 130))
 
@@ -466,7 +468,8 @@ class Game:
     def run(self) -> None:
         running = True
         while running:
-            dt = self.clock.tick(FPS) / 1000.0
+            # Trava o dt no máximo em 0.05 segundos para evitar bugs de colisão/física
+            dt = min(self.clock.tick(FPS) / 1000.0, 0.05) 
             running = self.handle_events()
             self.update(dt)
             self.draw()

@@ -1,15 +1,25 @@
 """
 ui/dialogue.py
+
+CORREÇÃO:
+  Quando o nó é folha (is_leaf), o hint mostrava "[1] Encerrar" mas pressionar
+  [1] não fazia nada (game.py só processa K_1 quando not node.is_leaf).
+  Corrigido: hint agora mostra "ENTER / E → fechar" para nós folha,
+  e "[1] [2] ..." apenas para nós com escolhas.
 """
 import pygame
 from config import SCREEN_W, SCREEN_H, YELLOW, WHITE, GRAY, BLACK, LIGHT_GRAY
-from ui.fonts import fonts
+
+# IMPORT GLOBAL REMOVIDO DAQUI
+
 
 def draw_dialogue(surface: pygame.Surface, npc) -> None:
-    BOX_H  = 170 
-    PAD    = 20
-    br     = pygame.Rect(PAD, SCREEN_H - BOX_H - PAD, SCREEN_W - PAD * 2, BOX_H)
-    node   = npc.tree.current # Pega o nó atual
+    from ui.fonts import fonts  # <--- IMPORT MOVIDO PARA CÁ!
+    
+    BOX_H = 170
+    PAD   = 20
+    br    = pygame.Rect(PAD, SCREEN_H - BOX_H - PAD, SCREEN_W - PAD * 2, BOX_H)
+    node  = npc.tree.current
 
     bg = pygame.Surface((br.w, br.h), pygame.SRCALPHA)
     bg.fill((10, 10, 30, 235))
@@ -29,15 +39,17 @@ def draw_dialogue(surface: pygame.Surface, npc) -> None:
     name_s = fonts.md.render(speaker_name, True, YELLOW)
     surface.blit(name_s, (br.x + 80, br.y + 12))
 
-    pygame.draw.line(surface, YELLOW, (br.x + 80, br.y + 36), (br.right - 12, br.y + 36), 1)
+    pygame.draw.line(surface, YELLOW, (br.x + 80, br.y + 36),
+                     (br.right - 12, br.y + 36), 1)
 
-    # Texto principal com quebra de linha
+    # Texto com quebra de linha
     text_area_w = br.w - 95
-    words   = node.text.split()
+    words  = node.text.split()
     lines, cur = [], ""
     for w in words:
         test = (cur + " " + w).strip()
-        if fonts.md.size(test)[0] < text_area_w: cur = test
+        if fonts.md.size(test)[0] < text_area_w:
+            cur = test
         else:
             lines.append(cur)
             cur = w
@@ -47,15 +59,15 @@ def draw_dialogue(surface: pygame.Surface, npc) -> None:
         s = fonts.md.render(line, True, WHITE)
         surface.blit(s, (br.x + 80, br.y + 45 + i * 25))
 
-    # Opções Numéricas
-    opcoes_y_start = br.y + 45 + (len(lines[:3]) * 25) + 10
+    opcoes_y = br.y + 45 + len(lines[:3]) * 25 + 8
 
     if node.is_leaf:
-        hint = fonts.sm.render("[1] Encerrar", True, GRAY)
+        # CORRIGIDO: hint correto para fechar com E/ENTER
+        hint = fonts.sm.render("ENTER / E → fechar", True, GRAY)
         surface.blit(hint, (br.right - hint.get_width() - 20, br.bottom - 25))
     else:
         offset_x = 0
         for i, choice in enumerate(node.choices):
             c_text = fonts.sm.render(f"[{i+1}] {choice[0]}", True, LIGHT_GRAY)
-            surface.blit(c_text, (br.x + 80 + offset_x, opcoes_y_start))
-            offset_x += c_text.get_width() + 40
+            surface.blit(c_text, (br.x + 80 + offset_x, opcoes_y))
+            offset_x += c_text.get_width() + 30

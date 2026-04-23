@@ -1,58 +1,48 @@
 """
 ui/inventory.py
-===============
-Renderização da tela de inventário (overlay sobre o jogo).
 
-Layout:
-  Grade 4 × N de slots, cada slot mostra:
-    - Círculo colorido com brilho (representando o item)
-    - Nome curto do item abaixo
-
-Aberto/fechado por [I].
-Poções usadas por [F] (lógica no game.py).
+CORREÇÃO:
+  ORANGE estava sendo usado na linha do botão de ordenação mas não estava
+  importado de config -> NameError ao abrir o inventário com [I].
+  Adicionado ORANGE ao import de config.
 """
 
 import pygame
-from config import SCREEN_W, SCREEN_H, YELLOW, WHITE, GRAY, DARK_GRAY, LIGHT_GRAY
-from ui.fonts import fonts
+from config import SCREEN_W, SCREEN_H, YELLOW, WHITE, GRAY, DARK_GRAY, LIGHT_GRAY, ORANGE
+
+# IMPORT GLOBAL DA FONTE REMOVIDO DAQUI
 
 _SORT_LABELS = {"label": "A-Z", "count": "Qtd", "type": "Tipo"}
 
 
-
 def draw_inventory(surface: pygame.Surface, player) -> None:
-    """
-    Renderiza o painel de inventário como overlay.
-    Deve ser chamado após draw_world e draw_hud.
-    """
-    IW, IH  = 340, 420
+    from ui.fonts import fonts  # <--- IMPORT MOVIDO PARA CÁ!
+    
+    IW, IH = 340, 420
     ix = SCREEN_W // 2 - IW // 2
     iy = SCREEN_H // 2 - IH // 2
-    
-    inv = player.inventory   # InventoryManager
 
+    inv = player.inventory  # InventoryManager
 
-    # ── Fundo ────────────────────────────────────────────────────────
+    # Fundo
     bg = pygame.Surface((IW, IH), pygame.SRCALPHA)
     bg.fill((15, 15, 35, 235))
     surface.blit(bg, (ix, iy))
     pygame.draw.rect(surface, YELLOW, (ix, iy, IW, IH), 2, border_radius=10)
 
-    # ── Título ───────────────────────────────────────────────────────
+    # Título
     title = fonts.lg.render("INVENTARIO", True, YELLOW)
     surface.blit(title, (ix + IW // 2 - title.get_width() // 2, iy + 12))
-    pygame.draw.line(surface, YELLOW, (ix + 20, iy + 44), (ix + IW - 20, iy + 44))
 
-# Botão de ordenação
+    # Botão de ordenação
     sort_lbl = _SORT_LABELS.get(inv.current_sort, inv.current_sort)
     sort_s = fonts.xs.render(f"[O] Ordem: {sort_lbl}", True, ORANGE)
     surface.blit(sort_s, (ix + IW - sort_s.get_width() - 12, iy + 14))
-    
+
     pygame.draw.line(surface, YELLOW, (ix + 10, iy + 42), (ix + IW - 10, iy + 42))
-    
-# ── Itens ────────────────────────────────────────────────────────
-    
-    rows = inv.sorted_display()   # list[dict]
+
+    # Itens via sorted_display() — retorna list[dict]
+    rows = inv.sorted_display()
 
     if not rows:
         et = fonts.md.render("Inventário vazio", True, GRAY)
@@ -72,37 +62,25 @@ def draw_inventory(surface: pygame.Surface, player) -> None:
             pygame.draw.rect(surface, DARK_GRAY, slot_r, border_radius=7)
             pygame.draw.rect(surface, GRAY,      slot_r, 1, border_radius=7)
 
-            # Ícone colorido
             cx_i = sx + SLOT // 2
             cy_i = sy + SLOT // 2 - 10
             pygame.draw.circle(surface, row["color"], (cx_i, cy_i), 17)
             bright = tuple(min(255, c + 70) for c in row["color"])
             pygame.draw.circle(surface, bright, (cx_i - 5, cy_i - 5), 6)
 
-            # Ícone texto
             ic = fonts.xxs.render(row["icon"][:2], True, WHITE)
             surface.blit(ic, (cx_i - ic.get_width() // 2, cy_i - ic.get_height() // 2))
 
-            # Quantidade (canto superior direito)
             count_s = fonts.sm.render(f"x{row['count']}", True, YELLOW)
             surface.blit(count_s, (sx + SLOT - count_s.get_width() - 3, sy + 3))
 
-            # Nome curto
             nm = fonts.xxs.render(row["label"][:10], True, WHITE)
             surface.blit(nm, (sx + SLOT // 2 - nm.get_width() // 2, sy + SLOT - 15))
 
-# Rodapé
+    # Rodapé
     pygame.draw.line(surface, GRAY, (ix + 10, iy + IH - 34), (ix + IW - 10, iy + IH - 34))
-    tip = fonts.xs.render("F → usar poção    O → ordenar    I → fechar", True, LIGHT_GRAY)
+    tip = fonts.xs.render("F=pocao  O=ordenar  I=fechar", True, LIGHT_GRAY)
     surface.blit(tip, (ix + IW // 2 - tip.get_width() // 2, iy + IH - 24))
 
     tot = fonts.xs.render(f"{inv.unique_types} tipo(s)  |  {inv.total} item(ns)", True, GRAY)
     surface.blit(tot, (ix + IW - tot.get_width() - 12, iy + IH - 24))
-
-    # ── Dicas de uso ─────────────────────────────────────────────────
-   # tip = fonts.xs.render("F → usar poção    I → fechar", True, LIGHT_GRAY)
-    #surface.blit(tip, (ix + IW // 2 - tip.get_width() // 2, iy + IH - 22))
-
-    # ── Contagem ─────────────────────────────────────────────────────
-    #count = fonts.xs.render(f"{len(inv)} / ∞ itens", True, GRAY)
-    #surface.blit(count, (ix + 12, iy + IH - 22))

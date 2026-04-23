@@ -17,7 +17,8 @@ from config import (
     MAP_W, MAP_H, TILE_SIZE,
     WHITE, GRAY, YELLOW, RED, LIGHT_GRAY
 )
-from ui.fonts import fonts
+
+# IMPORT GLOBAL DA FONTE REMOVIDO DAQUI
 
 
 class MiniMap:
@@ -40,6 +41,8 @@ class MiniMap:
     # ------------------------------------------------------------------ #
     def draw(self, surface: pygame.Surface,
              player, npcs: list, monsters: list, items: list) -> None:
+        
+        from ui.fonts import fonts  # <--- IMPORT MOVIDO PARA CÁ!
 
         surface.blit(self._bg, (self.x, self.y))
         pygame.draw.rect(surface, GRAY, (self.x, self.y, self.w, self.h), 1)
