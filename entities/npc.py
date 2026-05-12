@@ -1,371 +1,141 @@
-"""
-entities/npc.py
-<<<<<<< Updated upstream
-===============
-Classe NPC — personagem não-jogável com diálogo e ação.
-
-Comportamentos:
-  - Flutuação suave (bob via seno)
-  - Diálogo com múltiplas falas (avanço por tecla)
-  - Entrega um item ao jogador na primeira conversa
-  - Exibe dica [E] quando o jogador está próximo
-=======
-
-MUDANCAS:
-  - Loja do mercador tem opcao "Sair da loja" (volta ao root)
-  - Sábio tem "Sair" em todas as sub-árvores
-  - DialogueTree: select() nunca fecha o diálogo diretamente —
-    o fechamento é responsabilidade de _ev_dialogue em game.py
->>>>>>> Stashed changes
-"""
-
-import math
-import pygame
-<<<<<<< Updated upstream
-from config import NPC_INTERACT_RANGE, YELLOW, WHITE, BLACK
-from entities.base import AnimatedSprite
-
-
-class NPC(AnimatedSprite):
-    """
-    Crie instâncias com posição, nome e (opcionalmente) lista de diálogos.
-    O Game verifica a distância e chama .interact() ao pressionar E.
-    """
-
-    DEFAULT_DIALOGUES = [
-        "Olá, aventureiro! Bem-vindo a estas terras.",
-        "Este mundo está repleto de criaturas perigosas...",
-        "Use o CLIQUE ESQUERDO para lançar sua magia!",
-        "Colete os itens brilhantes espalhados pelo mapa.",
-        "Pressione I para o inventário e F para usar poções.",
-        "Toma este item — vai precisar na jornada. [Poção de Vida]",
-    ]
-
-    def __init__(self, x: float, y: float,
-                 name: str = "Aldeão Sábio",
-                 dialogues: list[str] | None = None):
-        super().__init__((220, 170, 100), x, y, size=20)
-        self.name           = name
-        self.dialogues      = dialogues or self.DEFAULT_DIALOGUES
-        self.interact_range = NPC_INTERACT_RANGE
-        self.in_dialogue    = False
-        self.dialogue_idx   = 0
-        self.gave_item      = False   # item entregue apenas uma vez
-        self._bob           = 0.0    # timer da flutuação
-=======
-from config import (
-    NPC_INTERACT_RANGE, YELLOW, WHITE, BLACK,
-    SHOP_PRICE_SPEED, SHOP_PRICE_FIRERATE,
-    SHOP_PRICE_DAMAGE, SHOP_PRICE_LANTERN, SHOP_PRICE_POTION,
-    LANTERN_DEFAULT_RADIUS,
-)
+"""entities/npc.py — Sábio Aldren + Mercador Zek com DialogueTree."""
+import math, pygame
+from config import (NPC_INTERACT_RANGE, YELLOW, WHITE, BLACK,
+                    SHOP_PRICE_SPEED, SHOP_PRICE_FIRERATE, SHOP_PRICE_DAMAGE,
+                    SHOP_PRICE_LANTERN, SHOP_PRICE_POTION, SHOP_PRICE_SKILL_RANGE,
+                    LANTERN_DEFAULT_RADIUS)
 from entities.sprite import AnimatedSprite
 
-
-# ══════════════════════════════════════════════════════
-# ÁRVORE DE DIÁLOGO
-# ══════════════════════════════════════════════════════
-
 class DialogueNode:
-    def __init__(self, text: str, speaker: str = "NPC",
-                 choices: list = None, action=None):
-        self.text    = text
-        self.speaker = speaker
-        self.choices = choices or []
-        self.action  = action
-
+    def __init__(self, text, speaker="NPC", choices=None, action=None):
+        self.text=text; self.speaker=speaker
+        self.choices=choices or []; self.action=action
     @property
-    def is_leaf(self) -> bool:
-        return len(self.choices) == 0
-
+    def is_leaf(self): return len(self.choices)==0
 
 class DialogueTree:
-    def __init__(self, root: DialogueNode):
-        self.root     = root
-        self.current  = root
-        self.done     = False
-        self.last_msg = None
-
-    def reset(self) -> None:
-        self.current  = self.root
-        self.done     = False
-        self.last_msg = None
-
-    def select(self, choice_idx: int) -> None:
-        """
-        Navega para o próximo nó.
-        Se next_node é None → fecha o diálogo (opção "Sair" explícita).
-        Se next_node é leaf → vai até lá (texto exibido até ENTER/E).
-        Nunca fecha o diálogo quando vai para um nó com texto, apenas
-        quando next_node é None.
-        """
-        if self.done or choice_idx >= len(self.current.choices):
-            return
-
-        _label, next_node = self.current.choices[choice_idx]
-
+    def __init__(self, root):
+        self.root=root; self.current=root; self.done=False; self.last_msg=None
+    def reset(self):
+        self.current=self.root; self.done=False; self.last_msg=None
+    def select(self, idx):
+        if self.done or idx>=len(self.current.choices): return
+        _,nxt=self.current.choices[idx]
         if self.current.action:
-            msg = self.current.action()
-            if msg:
-                self.last_msg = msg
-
-        if next_node is None:
-            # Opção de fechar explicitamente
-            self.done    = True
-            self.current = self.root
-            return
-
-        self.current = next_node
-
+            m=self.current.action()
+            if m: self.last_msg=m
+        if nxt is None:
+            self.done=True; self.current=self.root; return
+        self.current=nxt
         if self.current.action:
-            msg = self.current.action()
-            if msg:
-                self.last_msg = msg
-        # Não marca done=True — _ev_dialogue faz isso ao detectar is_leaf + ENTER
-
-
-# ══════════════════════════════════════════════════════
-# CLASSE NPC
-# ══════════════════════════════════════════════════════
+            m=self.current.action()
+            if m: self.last_msg=m
 
 class NPC(AnimatedSprite):
-    def __init__(self, x: float, y: float,
-                 name: str, color: tuple, tree: DialogueTree):
-        super().__init__(color, x, y, size=20)
-        self.name           = name
-        self.tree           = tree
-        self.interact_range = NPC_INTERACT_RANGE
-        self._bob           = 0.0
->>>>>>> Stashed changes
-
-    # ------------------------------------------------------------------ #
-    #  Diálogo                                                             #
-    # ------------------------------------------------------------------ #
-    def interact(self) -> None:
-        """Inicia o diálogo do início."""
-        self.in_dialogue  = True
-        self.dialogue_idx = 0
-
-    def advance(self) -> bool:
-        """
-        Avança para a próxima fala.
-        Retorna True se o diálogo chegou ao fim.
-        """
-        self.dialogue_idx += 1
-        if self.dialogue_idx >= len(self.dialogues):
-            self.in_dialogue  = False
-            self.dialogue_idx = 0
-            return True
-        return False
-
-    @property
-    def current_line(self) -> str:
-        idx = min(self.dialogue_idx, len(self.dialogues) - 1)
-        return self.dialogues[idx]
-
-    @property
-    def progress(self) -> str:
-        return f"{self.dialogue_idx + 1}/{len(self.dialogues)}"
-
-    # ------------------------------------------------------------------ #
-    #  Update                                                              #
-    # ------------------------------------------------------------------ #
-    def update(self, dt: float) -> None:
-        self._bob += dt
-
-<<<<<<< Updated upstream
-    # ------------------------------------------------------------------ #
-    #  Desenho                                                             #
-    # ------------------------------------------------------------------ #
-    def draw(self, surface: pygame.Surface,
-             cam_x: float, cam_y: float,
-             player_close: bool = False) -> None:
-        # Flutuação vertical suave
-        sy_offset = int(math.sin(self._bob * 2) * 3)
-=======
-    def draw(self, surface: pygame.Surface,
-             cam_x: float, cam_y: float,
-             player_close: bool = False) -> None:
-        offset = int(math.sin(self._bob * 2) * 3)
->>>>>>> Stashed changes
-        sx = int(self.x - cam_x)
-        sy = int(self.y - cam_y) + offset
-
-        self._draw_character(surface, sx, sy, self.color)
-
-<<<<<<< Updated upstream
-        font_bold = pygame.font.SysFont("Arial", 13, bold=True)
-        font_hint = pygame.font.SysFont("Arial", 11)
-
-        # Nome (amarelo, acima)
-        ns = font_bold.render(self.name, True, YELLOW)
-=======
-        font_b = pygame.font.SysFont("Arial", 13, bold=True)
-        ns = font_b.render(self.name, True, YELLOW)
->>>>>>> Stashed changes
-        surface.blit(ns, (sx - ns.get_width() // 2, sy - self.size - 32))
-
-        # Dica de interação quando perto
+    def __init__(self,x,y,name,color,tree):
+        super().__init__(color,x,y,size=20)
+        self.name=name; self.tree=tree
+        self.interact_range=NPC_INTERACT_RANGE; self._bob=0.0
+    def interact(self): self.tree.reset()
+    def update(self,dt): self._bob+=dt
+    def draw(self,surface,cam_x,cam_y,player_close=False):
+        off=int(math.sin(self._bob*2)*3)
+        sx,sy=int(self.x-cam_x),int(self.y-cam_y)+off
+        self._draw_character(surface,sx,sy,self.color)
+        fb=pygame.font.SysFont("Arial",13,bold=True)
+        ns=fb.render(self.name,True,YELLOW)
+        surface.blit(ns,(sx-ns.get_width()//2,sy-self.size-32))
         if player_close:
-<<<<<<< Updated upstream
-            hint = font_hint.render("[E] Falar", True, WHITE)
-=======
-            fh = pygame.font.SysFont("Arial", 11)
-            hint = fh.render("[E] Falar", True, WHITE)
->>>>>>> Stashed changes
-            bw, bh = hint.get_width() + 10, hint.get_height() + 6
-            bg = pygame.Surface((bw, bh), pygame.SRCALPHA)
-            bg.fill((0, 0, 0, 160))
-            hx, hy = sx - bw // 2, sy - self.size - 52
-            surface.blit(bg, (hx, hy))
-<<<<<<< Updated upstream
-            surface.blit(hint, (hx + 5, hy + 3))
-=======
-            surface.blit(hint, (hx + 5, hy + 3))
+            fh=pygame.font.SysFont("Arial",11)
+            hint=fh.render("[E] Falar",True,WHITE)
+            bw,bh=hint.get_width()+10,hint.get_height()+6
+            bg=pygame.Surface((bw,bh),pygame.SRCALPHA); bg.fill((0,0,0,160))
+            hx,hy=sx-bw//2,sy-self.size-52
+            surface.blit(bg,(hx,hy)); surface.blit(hint,(hx+5,hy+3))
 
-
-# ══════════════════════════════════════════════════════
-# FÁBRICAS
-# ══════════════════════════════════════════════════════
-
-def make_sage(x: float, y: float, inventory) -> NPC:
-    _given = {"potion": False}
-
-    def give_potion():
-        if not _given["potion"]:
-            inventory.add("hp_potion", 1)
-            _given["potion"] = True
+def make_sage(x,y,inventory,boss_callback=None):
+    """Sábio Aldren — tutorial + opção de invocar boss."""
+    _g={"pot":False}
+    def give():
+        if not _g["pot"]:
+            inventory.add("hp_potion",1); _g["pot"]=True
             return "Sabio deu: Pocao de Vida!"
-        return "Voce ja recebeu sua pocao inicial."
+        return "Voce ja recebeu sua pocao."
+    def challenge_boss():
+        if boss_callback: boss_callback()
+        return "O Boss foi invocado! Derrote-o para conseguir a Chave!"
 
-    leaf_bye      = DialogueNode("Boa sorte! Volte quando precisar.", speaker="Sabio Aldren")
-    leaf_controls = DialogueNode(
-        "WASD move. Clique Dir ataca. F usa pocao. I abre inventario. E interage. ESC fecha dialogo.",
-        speaker="Sabio Aldren"
-    )
-    leaf_danger   = DialogueNode(
-        "Mate mobs para XP e moedas. Subir de nivel da moedas extras. Ache a Chave e use na Porta!",
-        speaker="Sabio Aldren"
-    )
-    leaf_level    = DialogueNode(
-        "Cada nivel que voce sobe da +1 moeda. Use-as no Mercador Zek para ficar mais forte!",
-        speaker="Sabio Aldren"
-    )
-    leaf_gem      = DialogueNode(
-        "Gemas dao +10 XP ao serem coletadas. Acumule XP para subir de nivel e ganhar moedas!",
-        speaker="Sabio Aldren"
-    )
-    leaf_potion   = DialogueNode(
-        "Aqui esta sua pocao inicial. Pocoes recuperam 40 HP. Compre mais no Mercador com moedas.",
-        speaker="Sabio Aldren",
-        action=give_potion
-    )
+    leaf_bye    = DialogueNode("Boa sorte! Volte quando precisar.",speaker="Sabio Aldren")
+    leaf_ctrl   = DialogueNode("WASD move. Clique Dir ataca. F=pocao. I=inventario. E=interagir. ESC=pausar.",speaker="Sabio Aldren")
+    leaf_goal   = DialogueNode("Mate mobs para XP e moedas. Suba de nivel para ganhar moedas. Derrote o Boss para pegar a Chave e passar pela Porta!",speaker="Sabio Aldren")
+    leaf_level  = DialogueNode("Cada nivel sobe 1 moeda. Use no Mercador para ficar mais forte!",speaker="Sabio Aldren")
+    leaf_gem    = DialogueNode("Gemas dao +50 XP ao coletar. Pergaminhos dao +40 XP. Espada +dano. Escudo +HP.",speaker="Sabio Aldren")
+    leaf_pot    = DialogueNode("Aqui esta sua pocao inicial!",speaker="Sabio Aldren",action=give)
+    leaf_boss   = DialogueNode("O Boss foi invocado! Ele esta longe, na zona de perigo. Boa sorte!",speaker="Sabio Aldren",action=challenge_boss)
+    leaf_boss_no= DialogueNode("Entendido. Volte quando estiver pronto. Precisa de nivel 2 para invocar o Boss.",speaker="Sabio Aldren")
 
-    node_ask = DialogueNode(
-        "O que deseja saber?",
-        speaker="Sabio Aldren",
+    node_boss = DialogueNode("Deseja invocar o Boss deste andar? Ele dropa a Chave garantida!",speaker="Sabio Aldren",
+        choices=[("Sim, quero enfrentar!",leaf_boss),("Ainda nao estou pronto.",leaf_boss_no)])
+    node_ask = DialogueNode("O que deseja saber?",speaker="Sabio Aldren",
         choices=[
-            ("Como me controlo?",        leaf_controls),
-            ("O que devo fazer?",         leaf_danger),
-            ("Para que serve o nivel?",   leaf_level),
-            ("O que sao as gemas?",       leaf_gem),
-            ("Pode me dar algo?",         leaf_potion),
-            ("Ate logo.",                 None),   # None = fecha dialogo
-        ]
-    )
-    root = DialogueNode(
-        "Bem-vindo! Sou o Sabio Aldren. Este vilarejo e seguro — fora das paredes ha perigo.",
-        speaker="Sabio Aldren",
+            ("Como me controlo?",leaf_ctrl),
+            ("O que devo fazer?",leaf_goal),
+            ("Para que serve o nivel?",leaf_level),
+            ("Gemas/itens do chao?",leaf_gem),
+            ("Pode me dar algo?",leaf_pot),
+            ("Ate logo.",None)])
+    root = DialogueNode("Bem-vindo! Sou o Sabio Aldren. Este vilarejo e sua zona segura.",speaker="Sabio Aldren",
         choices=[
-            ("Preciso de orientacao.", node_ask),
-            ("Estou bem, obrigado.",   None),
-        ]
-    )
-    return NPC(x, y, "Sabio Aldren", (80, 160, 200), DialogueTree(root))
+            ("Preciso de orientacao.",node_ask),
+            ("Invocar o Boss deste andar.",node_boss),
+            ("Estou bem, obrigado.",None)])
+    return NPC(x,y,"Sabio Aldren",(80,160,200),DialogueTree(root))
 
+def make_merchant(x,y,player):
+    """Mercador Zek — loja com 6 upgrades + opção sair."""
+    inv=player.inventory; MAX=5
+    def _buy(cost,fn,lbl):
+        def a():
+            c=inv.count("coin")
+            if c<cost: return f"Sem moedas! Precisa {cost}, tem {c}."
+            inv.remove("coin",cost); r=fn()
+            return r or f"{lbl} melhorado!"
+        return a
+    def up_spd():
+        if player.speed>=PLAYER_SPEED+20*MAX: return "Velocidade maxima!"
+        player.speed+=20; return f"Velocidade:{player.speed}"
+    def up_cd():
+        if player.skill_max_cd<=12: return "Cadencia maxima!"
+        player.skill_max_cd=max(12,player.skill_max_cd-8); return f"Cadencia:{player.skill_max_cd}f"
+    def up_dmg():
+        if player.skill_damage>=SKILL_DAMAGE+10*MAX: return "Dano maximo!"
+        player.skill_damage+=10; return f"Dano:{player.skill_damage}"
+    def up_lan():
+        if player.lantern_radius>=LANTERN_DEFAULT_RADIUS+40*MAX: return "Lanterna maxima!"
+        player.lantern_radius+=40; return f"Lanterna:{player.lantern_radius}px"
+    def up_range():
+        if player.skill_radius>=15: return "Raio maximo!"
+        player.skill_radius+=2; return f"Raio magia:{player.skill_radius}"
+    def buy_pot():
+        inv.add("hp_potion",1); return "Comprou Pocao de Vida!"
 
-def make_merchant(x: float, y: float, player) -> NPC:
-    inv = player.inventory
-    MAX_UP = 5
+    from config import SKILL_DAMAGE as SD, PLAYER_SPEED
+    leaf_bye  = DialogueNode("Volte com moedas!",speaker="Mercador Zek")
+    leaf_spd  = DialogueNode(f"Velocidade +20. Custo:{SHOP_PRICE_SPEED}$",speaker="Mercador Zek",action=_buy(SHOP_PRICE_SPEED,up_spd,"Vel"))
+    leaf_cd   = DialogueNode(f"Cadencia -8f. Custo:{SHOP_PRICE_FIRERATE}$",speaker="Mercador Zek",action=_buy(SHOP_PRICE_FIRERATE,up_cd,"Cad"))
+    leaf_dmg  = DialogueNode(f"Dano +10. Custo:{SHOP_PRICE_DAMAGE}$",speaker="Mercador Zek",action=_buy(SHOP_PRICE_DAMAGE,up_dmg,"Dano"))
+    leaf_lan  = DialogueNode(f"Lanterna +40px. Custo:{SHOP_PRICE_LANTERN}$",speaker="Mercador Zek",action=_buy(SHOP_PRICE_LANTERN,up_lan,"Lan"))
+    leaf_rng  = DialogueNode(f"Raio magia +2. Custo:{SHOP_PRICE_SKILL_RANGE}$",speaker="Mercador Zek",action=_buy(SHOP_PRICE_SKILL_RANGE,up_range,"Raio"))
+    leaf_pot  = DialogueNode(f"Pocao +40HP. Custo:{SHOP_PRICE_POTION}$",speaker="Mercador Zek",action=_buy(SHOP_PRICE_POTION,buy_pot,"Pot"))
 
-    def _buy(cost, apply_fn, label):
-        def action():
-            coins = inv.count("coin")
-            if coins < cost:
-                return f"Sem moedas! Precisa de {cost}, tem {coins}."
-            inv.remove("coin", cost)
-            result = apply_fn()
-            return result or f"{label} melhorado!"
-        return action
-
-    def up_speed():
-        if player.speed >= 160 + 20 * MAX_UP:
-            return "Velocidade ja no maximo!"
-        player.speed += 20
-        return f"Velocidade: {player.speed}"
-
-    def up_firerate():
-        if player.skill_max_cd <= 15:
-            return "Cadencia ja no maximo!"
-        player.skill_max_cd = max(15, player.skill_max_cd - 8)
-        return f"Cadencia: {player.skill_max_cd} frames"
-
-    def up_damage():
-        if player.skill_damage >= 30 + 10 * MAX_UP:
-            return "Dano ja no maximo!"
-        player.skill_damage += 10
-        return f"Dano: {player.skill_damage}"
-
-    def up_lantern():
-        if player.lantern_radius >= LANTERN_DEFAULT_RADIUS + 40 * MAX_UP:
-            return "Lanterna ja no maximo!"
-        player.lantern_radius += 40
-        return f"Raio lanterna: {player.lantern_radius}px"
-
-    def buy_potion():
-        inv.add("hp_potion", 1)
-        return "Comprou Pocao de Vida!"
-
-    leaf_bye = DialogueNode(
-        "Volte quando tiver moedas! Orcs e Goblins dropam chaves.", speaker="Mercador Zek"
-    )
-
-    # Folhas da loja (exibem resultado da compra)
-    leaf_speed    = DialogueNode(f"Velocidade +20. Custo: {SHOP_PRICE_SPEED}$.",
-                                  speaker="Mercador Zek",
-                                  action=_buy(SHOP_PRICE_SPEED,    up_speed,    "Velocidade"))
-    leaf_firerate = DialogueNode(f"Cadencia de disparo -8 frames. Custo: {SHOP_PRICE_FIRERATE}$.",
-                                  speaker="Mercador Zek",
-                                  action=_buy(SHOP_PRICE_FIRERATE, up_firerate, "Cadencia"))
-    leaf_damage   = DialogueNode(f"Dano da magia +10. Custo: {SHOP_PRICE_DAMAGE}$.",
-                                  speaker="Mercador Zek",
-                                  action=_buy(SHOP_PRICE_DAMAGE,   up_damage,   "Dano"))
-    leaf_lantern  = DialogueNode(f"Raio de visao +40px. Custo: {SHOP_PRICE_LANTERN}$.",
-                                  speaker="Mercador Zek",
-                                  action=_buy(SHOP_PRICE_LANTERN,  up_lantern,  "Lanterna"))
-    leaf_potion   = DialogueNode(f"Pocao de Vida (+40 HP). Custo: {SHOP_PRICE_POTION}$.",
-                                  speaker="Mercador Zek",
-                                  action=_buy(SHOP_PRICE_POTION,   buy_potion,  "Pocao"))
-
-    node_shop = DialogueNode(
-        "Loja de upgrades — permanentes nesta run!",
-        speaker="Mercador Zek",
+    shop = DialogueNode("Upgrades permanentes! O que deseja?",speaker="Mercador Zek",
         choices=[
-            (f"Velocidade     ({SHOP_PRICE_SPEED}$)",    leaf_speed),
-            (f"Cadencia       ({SHOP_PRICE_FIRERATE}$)", leaf_firerate),
-            (f"Dano magia     ({SHOP_PRICE_DAMAGE}$)",   leaf_damage),
-            (f"Lanterna       ({SHOP_PRICE_LANTERN}$)",  leaf_lantern),
-            (f"Pocao de Vida  ({SHOP_PRICE_POTION}$)",   leaf_potion),
-            ("Sair da loja",                              None),   # voltar / fechar
-        ]
-    )
-    root = DialogueNode(
-        "Mercador Zek! Upgrades permanentes por moedas. Orcs e Goblins dropam chaves!",
-        speaker="Mercador Zek",
-        choices=[
-            ("Ver loja.", node_shop),
-            ("Nao, obrigado.", None),
-        ]
-    )
-    return NPC(x, y, "Mercador Zek", (220, 130, 50), DialogueTree(root))
->>>>>>> Stashed changes
+            (f"Velocidade ({SHOP_PRICE_SPEED}$)",leaf_spd),
+            (f"Cadencia   ({SHOP_PRICE_FIRERATE}$)",leaf_cd),
+            (f"Dano magia ({SHOP_PRICE_DAMAGE}$)",leaf_dmg),
+            (f"Lanterna   ({SHOP_PRICE_LANTERN}$)",leaf_lan),
+            (f"Raio magia ({SHOP_PRICE_SKILL_RANGE}$)",leaf_rng),
+            (f"Pocao      ({SHOP_PRICE_POTION}$)",leaf_pot)])
+    root = DialogueNode("Mercador Zek! Upgrades por moedas.",speaker="Mercador Zek",
+        choices=[("Ver loja.",shop),("Nao obrigado.",None)])
+    return NPC(x,y,"Mercador Zek",(220,130,50),DialogueTree(root))

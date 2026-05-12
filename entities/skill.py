@@ -1,65 +1,59 @@
 """
-entities/projectile.py
-======================
-Projétil disparado pela skill do jogador.
-
-Criado com direção normalizada, voa em linha reta e
-desaparece ao atingir um monstro ou esgotar lifetime.
+entities/skill.py
+Projétil da skill — para ao atingir tile bloqueante.
+Hitbox fino (radius=5). Range limitada por SKILL_MAX_RANGE.
 """
+import math, pygame
+from config import SKILL_SPEED, SKILL_DAMAGE, SKILL_LIFE, SKILL_RADIUS, SKILL_MAX_RANGE
+from config import YELLOW, WHITE, TILE_SIZE, TILE_GRASS, TILE_FLOOR, TILE_DOOR
 
-import pygame
-from config import (
-    PROJECTILE_SPEED, PROJECTILE_DAMAGE, PROJECTILE_LIFE,
-    YELLOW, WHITE
-)
+_PASS = {TILE_GRASS, TILE_FLOOR, TILE_DOOR}
 
+def _tile_at(world, px, py):
+    tx, ty = int(px//TILE_SIZE), int(py//TILE_SIZE)
+    if world and 0<=ty<len(world.tiles) and 0<=tx<len(world.tiles[0]):
+        return world.tiles[ty][tx]
+    return TILE_GRASS
 
-class Projectile:
-    """
-    Parâmetros:
-        x, y    — posição de origem (coordenadas do mundo)
-        dx, dy  — direção normalizada
-        damage  — dano causado ao acertar
-        color   — cor visual
-    """
+class Skill:
+    def __init__(self, x, y, dx, dy, damage=SKILL_DAMAGE,
+                 color=YELLOW, world=None, radius=None):
+        self.x, self.y   = float(x), float(y)
+        self.ox, self.oy = float(x), float(y)   # origem (para calcular range)
+        self.dx, self.dy = dx, dy
+        self.speed        = SKILL_SPEED
+        self.lifetime     = SKILL_LIFE
+        self.radius       = radius if radius else SKILL_RADIUS
+        self.damage       = damage
+        self.color        = color
+        self._world       = world
+        self._anim        = 0
 
-    def __init__(self, x: float, y: float, dx: float, dy: float,
-                 damage: int = PROJECTILE_DAMAGE,
-                 color: tuple = YELLOW):
-        self.x       = float(x)
-        self.y       = float(y)
-        self.dx      = dx
-        self.dy      = dy
-        self.speed   = PROJECTILE_SPEED
-        self.lifetime= PROJECTILE_LIFE
-        self.radius  = 8
-        self.damage  = damage
-        self.color   = color
-        self._anim   = 0
-
-    # ------------------------------------------------------------------ #
-    def update(self, dt: float) -> None:
-        self.x        += self.dx * self.speed * dt
-        self.y        += self.dy * self.speed * dt
+    def update(self, dt):
+        nx = self.x + self.dx * self.speed * dt
+        ny = self.y + self.dy * self.speed * dt
+        # Para se bater em tile bloqueante
+        if _tile_at(self._world, nx, ny) not in _PASS:
+            self.lifetime = 0
+            return
+        # Para se ultrapassar o alcance máximo
+        if math.hypot(nx-self.ox, ny-self.oy) > SKILL_MAX_RANGE:
+            self.lifetime = 0
+            return
+        self.x, self.y = nx, ny
         self.lifetime -= 1
         self._anim    += 1
 
-    # ------------------------------------------------------------------ #
-    def draw(self, surface: pygame.Surface, cam_x: float, cam_y: float) -> None:
-        sx = int(self.x - cam_x)
-        sy = int(self.y - cam_y)
-        # Halo externo
-        pygame.draw.circle(surface, WHITE, (sx, sy), self.radius + 3, 2)
-        # Núcleo
-        pygame.draw.circle(surface, self.color, (sx, sy), self.radius)
-        # Ponto de brilho central
-        pygame.draw.circle(surface, WHITE, (sx, sy), max(1, self.radius - 4))
+    def draw(self, surface, cam_x, cam_y):
+        sx, sy = int(self.x-cam_x), int(self.y-cam_y)
+        pygame.draw.circle(surface, WHITE, (sx,sy), self.radius+2, 1)
+        pygame.draw.circle(surface, self.color, (sx,sy), self.radius)
+        if self.radius > 3:
+            pygame.draw.circle(surface, WHITE, (sx,sy), max(1,self.radius-3))
 
-    # ------------------------------------------------------------------ #
-    def get_rect(self) -> pygame.Rect:
+    def get_rect(self):
         r = self.radius
-        return pygame.Rect(self.x - r, self.y - r, r * 2, r * 2)
+        return pygame.Rect(self.x-r, self.y-r, r*2, r*2)
 
     @property
-    def alive(self) -> bool:
-        return self.lifetime > 0
+    def alive(self): return self.lifetime > 0
