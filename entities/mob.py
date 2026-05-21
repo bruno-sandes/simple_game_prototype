@@ -44,9 +44,21 @@ class Mob:
         self._charging    = False; self._charge_t = 0
         self._acd_base    = MOB_ATTACK_CD//2 if monster_type=="goblin" else MOB_ATTACK_CD
 
-    def update(self, dt, player):
+    def update(self, dt, player, player_in_safe=False):
         if self.dead: return
         self._anim_t += dt
+        # Dispersão: quando player entra na zona segura, mob para de perseguir
+        if player_in_safe:
+            self.moving = False
+            # Recua levemente para longe da porta
+            dx = self.x - player.x; dy = self.y - player.y
+            dist = math.hypot(dx, dy)
+            if dist > 0 and dist < 200:
+                self.x += (dx/dist) * self.speed * dt * 0.4
+                self.y += (dy/dist) * self.speed * dt * 0.4
+            if self.attack_cd > 0: self.attack_cd -= 1
+            if self.damage_flash > 0: self.damage_flash -= 1
+            return
         if self._intang > 0:
             self._intang -= 1; self._move(player, dt, True); return
         dx = player.x-self.x; dy = player.y-self.y; dist = math.hypot(dx,dy)
@@ -117,8 +129,13 @@ class Boss:
         self._has_dash=floor>=2; self._dash_cd=0
         self._has_summon=floor>=3; self._summon_cd=0
 
-    def update(self,dt,player,spawn_mob_cb=None):
+    def update(self,dt,player,spawn_mob_cb=None,player_in_safe=False):
         if self.dead: return
+        if player_in_safe:
+            # Boss pausa e aguarda player sair da safe zone
+            self.moving = False
+            if self.damage_flash > 0: self.damage_flash -= 1
+            return
         self._anim_t+=dt
         dx=player.x-self.x; dy=player.y-self.y; dist=math.hypot(dx,dy)
         if self._has_dash:

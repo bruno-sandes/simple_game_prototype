@@ -84,7 +84,7 @@ class Game:
 
         # NPCs (sage recebe callback de boss)
         self.npcs=[
-            make_sage    (cx-60, cy-20, self.player.inventory, self._request_boss),
+            make_sage    (cx-60, cy-20, self.player.inventory, self._request_boss, get_floor=lambda: self.floor),
             make_merchant(cx+60, cy-20, self.player),
         ]
 
@@ -107,8 +107,8 @@ class Game:
             pos=self.world.walkable_grass_pos(random.Random())
             if pos:
                 t=random.choices(
-                    ["coin","coin","coin","gem","scroll","hp_potion","sword","shield"],
-                    weights=[40,40,40,20,15,5,8,8])[0]
+                    ["coin","coin","coin","gem","scroll","hp_potion","hp_potion","sword","shield"],
+                    weights=[55,55,55,16,10,18,18,4,4])[0]
                 self.items.append(Item(pos[0],pos[1],t))
 
         self._msg(f"Andar {self.floor} — Invoque o Boss via Sabio Aldren e pegue a Chave!")
@@ -121,25 +121,31 @@ class Game:
         return types
 
     def _request_boss(self):
-        """Callback chamado pelo NPC Sábio — spawna boss na zona de perigo."""
+        """Spawna boss no lado oposto ao player (longe), fora da zona segura."""
         if self.boss and not self.boss.dead: return
         if self.player.level < BOSS_UNLOCK_LEVEL:
             self._msg(f"Precisa de nivel {BOSS_UNLOCK_LEVEL} para invocar o Boss!")
             return
-        # Spawna boss numa posição distante, na zona de perigo
-        sz_cx,sz_cy=self.world.safe_zone_center_px()
-        for _ in range(100):
-            angle=random.uniform(0,2*math.pi)
-            dist=random.uniform(MOB_SPAWN_MIN_DIST, MOB_SPAWN_MAX_DIST)
-            bx=sz_cx+math.cos(angle)*dist
-            by=sz_cy+math.sin(angle)*dist
-            bx=max(60,min(MAP_W*TILE_SIZE-60,bx))
-            by=max(60,min(MAP_H*TILE_SIZE-60,by))
-            if self.world.is_grass(int(bx//TILE_SIZE),int(by//TILE_SIZE)):
+        sz_cx, sz_cy = self.world.safe_zone_center_px()
+        # Angulo oposto ao player em relacao ao centro do mapa
+        dx = sz_cx - self.player.x
+        dy = sz_cy - self.player.y
+        base_angle = math.atan2(dy, dx)  # angulo do player p/ centro
+        # Boss nasce no sentido oposto ao player, longe da zona segura
+        spawn_dist = max(MOB_SPAWN_MAX_DIST, 650)
+        bx = by = 0
+        for attempt in range(180):
+            spread = (attempt / 180) * math.pi  # abre leque progressivamente
+            angle = base_angle + math.pi + math.sin(spread) * spread
+            bx = sz_cx + math.cos(angle) * spawn_dist
+            by = sz_cy + math.sin(angle) * spawn_dist
+            bx = max(80, min(MAP_W*TILE_SIZE-80, bx))
+            by = max(80, min(MAP_H*TILE_SIZE-80, by))
+            if self.world.is_grass(int(bx//TILE_SIZE), int(by//TILE_SIZE)):
                 break
-        self.boss=Boss(bx,by,floor=self.floor,world=self.world)
-        self._boss_reward_given=False
-        self._msg("★ BOSS INVOCADO! Derrote-o para pegar a Chave do Andar!")
+        self.boss = Boss(bx, by, floor=self.floor, world=self.world)
+        self._boss_reward_given = False
+        self._msg(f"★ BOSS INVOCADO no Andar {self.floor}! Ele se aproxima...")
 
     def _danger_spawn(self):
         sz_cx,sz_cy=self.world.safe_zone_center_px()
@@ -286,14 +292,20 @@ class Game:
         self.cam_y=max(0,min(MAP_H*TILE_SIZE-SCREEN_H,self.cam_y))
 
         for npc in self.npcs: npc.update(dt)
-        for mob in self.mobs: mob.update(dt,self.player)
+        # Fix 6: mobs dispersam se player está na zona segura
+        from config import TILE_FLOOR as _TF
+        px_t = int(self.player.x // TILE_SIZE)
+        py_t = int(self.player.y // TILE_SIZE)
+        player_in_safe = (0<=py_t<MAP_H and 0<=px_t<MAP_W and
+                          self.world.tiles[py_t][px_t] == _TF)
+        for mob in self.mobs: mob.update(dt, self.player, player_in_safe=player_in_safe)
 
         # Boss update
         if self.boss and not self.boss.dead:
             def _spawn_mob(x,y):
                 self.mobs.append(Mob(x,y,random.choice(["slime","goblin"]),
                                      world=self.world,player_level=self.player.level))
-            self.boss.update(dt,self.player,spawn_mob_cb=_spawn_mob)
+            self.boss.update(dt,self.player,spawn_mob_cb=_spawn_mob,player_in_safe=player_in_safe)
         elif self.boss and self.boss.dead and not self._boss_reward_given:
             self._boss_reward_given=True
             lv=self.player.gain_xp(self.boss.xp_reward)
@@ -427,9 +439,10 @@ class Game:
         for p in self.particles: p.draw(self.screen,cx,cy)
         self._lantern.draw(self.screen,self.player,cx,cy)
         draw_hud(self.screen,self.player,self.messages,self.floor)
-        self._minimap.draw(self.screen,self.player,self.npcs,self.mobs,self.items)
+        self._minimap.draw(self.screen,self.world,self.player,self.npcs,self.mobs,self.items,boss=self.boss)
 
     def _draw_gameover(self):
+        from ui.fonts import fonts
         self.screen.fill((8,4,4)); p=self.player
         go=fonts.xl.render("GAME OVER",True,RED)
         self.screen.blit(go,(SCREEN_W//2-go.get_width()//2,SCREEN_H//2-100))

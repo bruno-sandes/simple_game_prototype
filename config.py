@@ -78,11 +78,11 @@ BOSS_DMG_BASE     = 22
 BOSS_SPEED_BASE   = 80
 
 # Loja
-SHOP_PRICE_SPEED       = 3
-SHOP_PRICE_FIRERATE    = 3
-SHOP_PRICE_DAMAGE      = 4
-SHOP_PRICE_LANTERN     = 3
-SHOP_PRICE_SKILL_RANGE = 3
+SHOP_PRICE_SPEED       = 2
+SHOP_PRICE_FIRERATE    = 2
+SHOP_PRICE_DAMAGE      = 3
+SHOP_PRICE_LANTERN     = 2
+SHOP_PRICE_SKILL_RANGE = 2
 SHOP_PRICE_POTION      = 2
 
 # Cores
@@ -129,10 +129,14 @@ MOB_DEFS = {
 }
 
 MOB_DROPS = {
-    "slime":  [("coin",65),("gem",25),("nothing",10)],
-    "goblin": [("coin",50),("gem",15),("scroll",25),("nothing",10)],
-    "ghost":  [("gem",60),("scroll",25),("coin",10),("nothing",5)],
-    "orc":    [("coin",55),("key_chance",35),("hp_potion",5),("nothing",5)],
+    # Slime: muitas moedas, gemn ocasional
+    "slime":  [("coin",70),("coin",0),("gem",20),("hp_potion",5),("nothing",5)],
+    # Goblin: moedas + scrolls (XP)
+    "goblin": [("coin",60),("gem",12),("scroll",18),("hp_potion",8),("nothing",2)],
+    # Ghost: gemas e scrolls
+    "ghost":  [("gem",55),("scroll",25),("coin",12),("hp_potion",6),("nothing",2)],
+    # Orc: moedas + chave + poção (drop mais valioso)
+    "orc":    [("coin",45),("key_chance",30),("hp_potion",18),("gem",5),("nothing",2)],
 }
 
 ITEM_DEFS = {
