@@ -1,75 +1,56 @@
 """
-world/lantern.py
+world/lantern.py — penumbra suave, sem quadriculado.
 
-CORRECAO COMPLETA:
-  A versão anterior invertia o gradiente: centro escuro, borda clara.
-  Causa: a ordem dos círculos e os valores de alpha estavam errados.
-
-TECNICA CORRETA (BLEND_RGBA_MULT):
-  1. Preenche surface de névoa com preto + alpha=darkness
-  2. Cria surface de luz com alpha=255 em tudo (preserva névoa)
-  3. Desenha círculos do MAIOR para o MENOR com alpha DECRESCENTE
-     - Círculo externo (r=radius): alpha=255 → névoa preservada = ESCURO
-     - Círculos internos menores: alpha cada vez menor → névoa reduzida
-     - Centro (r pequeno): alpha≈0 → névoa apagada = CLARO
-  4. Aplica com BLEND_RGBA_MULT: result_alpha = light_alpha * fog_alpha / 255
-     - light=255 → preserva escuridão ✓
-     - light=0   → zera escuridão = transparente = claro ✓
-     - light=128 → meia escuridão = penumbra ✓
-
-RESULTADO: centro brilhante, penumbra suave, borda escura.
-O HUD é desenhado DEPOIS da lanterna e fica sempre visível.
+Usa pygame.draw.circle com antialiasing simulado por muitos
+passos finos (STEPS=48) para evitar borda pixelada.
+Três zonas:
+  0..radius      → totalmente visível (alpha=0)
+  radius..outer  → penumbra gradual  (alpha 0→darkness)
+  outer..tela    → escuridão total   (alpha=darkness)
 """
-
 import pygame
 from config import SCREEN_W, SCREEN_H, LANTERN_DARKNESS_ALPHA
 
-
 class Lantern:
+    PENUMBRA_RATIO = 0.55   # zona de penumbra = 55% extra além do raio
+    STEPS = 48              # mais passos = mais suave (sem quadriculado)
 
-    STEPS = 100   # passos do gradiente (mais = mais suave)
-
-    def __init__(self, darkness: int = LANTERN_DARKNESS_ALPHA):
+    def __init__(self, darkness=LANTERN_DARKNESS_ALPHA):
         self._darkness = darkness
-        # Superfície principal de névoa (reutilizada a cada frame)
+        # Surface pré-alocada
         self._fog = pygame.Surface((SCREEN_W, SCREEN_H), pygame.SRCALPHA)
 
-    def draw(self, surface: pygame.Surface,
-             player, cam_x: float, cam_y: float) -> None:
+    def draw(self, surface, player, cam_x, cam_y):
         radius = player.lantern_radius
+        outer  = int(radius * (1.0 + self.PENUMBRA_RATIO))
         px = int(player.x - cam_x)
         py = int(player.y - cam_y)
 
-        # 1. Névoa cobre tudo com a escuridão máxima
+        # Preenche tudo com escuridão máxima
         self._fog.fill((0, 0, 0, self._darkness))
 
-        # 2. Surface de luz: começa com tudo alpha=255 (preserva névoa)
-        diam = radius * 2 + 2
-        light = pygame.Surface((diam, diam), pygame.SRCALPHA)
-        light.fill((0, 0, 0, 255))
-
-        cx = cy = radius + 3
         steps = self.STEPS
-
-        # 3. Círculos de MAIOR para MENOR com alpha DECRESCENTE
-        #    → última camada sobre cada pixel é a menor que o cobre
-        #    → pixels perto do centro ficam com alpha ≈ 0 (apaga névoa)
-        #    → pixels na borda ficam com alpha = 255 (preserva névoa)
+        # Desenha círculos do MAIOR ao MENOR sobrescrevendo o alpha
+        # Tamanhos intermediários criam o gradiente suave
         for i in range(steps + 1):
-            ratio = i / steps                     # 0=primeiro(grande), 1=último(pequeno)
-            r     = int(radius * (1.0 - ratio))   # grande→pequeno
-            a     = int(255  * (1.0 - ratio))     # 255→0 (borda escura, centro claro)
-            if r > 0:
-                pygame.draw.circle(light, (0, 0, 0, a), (cx, cy), r)
+            # r vai de outer → 0 conforme i vai 0 → steps
+            r = int(outer * (1.0 - i / steps))
+            if r <= 0:
+                continue
 
-        # Garante centro 100% transparente (brilhante)
-        pygame.draw.circle(light, (0, 0, 0, 0), (cx, cy), max(4, radius // 8))
+            if r <= radius:
+                # Dentro da luz: apaga a névoa completamente
+                a = 0
+            else:
+                # Penumbra: alpha proporcional à distância da borda de luz
+                t = (r - radius) / (outer - radius)   # 0=borda luz, 1=borda escuro
+                # Curva suave (quadrática) para transição mais natural
+                a = int(self._darkness * (t * t))
 
-        # 4. Aplica gradiente à névoa com BLEND_RGBA_MULT
-        blit_x = px - radius - 3
-        blit_y = py - radius - 3
-        self._fog.blit(light, (blit_x, blit_y),
-                       special_flags=pygame.BLEND_RGBA_MULT)
+            pygame.draw.circle(self._fog, (0, 0, 0, a), (px, py), r)
 
-        # 5. Blit da névoa na tela
+        # Núcleo central: garante transparência total no centro
+        pygame.draw.circle(self._fog, (0, 0, 0, 0), (px, py),
+                           max(3, radius // 5))
+
         surface.blit(self._fog, (0, 0))
