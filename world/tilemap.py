@@ -1,13 +1,14 @@
 """
-world/tilemap.py — zona segura 18x12 tiles, mapa 60x60, bordas circulares.
+world/tilemap.py — zona segura menor (12x8), borda circular suave,
+minimap renderiza tiles sem quadriculado via pygame.transform.smoothscale.
 """
 import random, math, pygame
 from config import (MAP_W,MAP_H,TILE_SIZE,
     TILE_GRASS,TILE_WATER,TILE_TREE,TILE_STONE,TILE_FLOOR,TILE_DOOR,
     TILE_COLORS,BROWN,SCREEN_W,SCREEN_H)
 
-_SZ_W = 18   # zona segura: nem grande nem pequena
-_SZ_H = 12
+_SZ_W = 12   # zona segura mínima: só cabe os 2 NPCs
+_SZ_H = 8
 
 class World:
     def __init__(self, seed=42):
@@ -20,33 +21,38 @@ class World:
         rng=self._rng
         self.tiles=[[TILE_GRASS]*MAP_W for _ in range(MAP_H)]
         cx,cy=MAP_W/2,MAP_H/2
-        r_inner=27   # raio de grama — fora disso é pedra (borda circular)
+        r_inner=27
         for y in range(MAP_H):
             for x in range(MAP_W):
-                if math.hypot(x-cx,y-cy)>=r_inner:
+                # Borda circular suave (sem borda reta que parece tile)
+                d = math.hypot(x-cx, y-cy)
+                if d >= r_inner:
                     self.tiles[y][x]=TILE_STONE
+                elif d >= r_inner - 1:
+                    # Faixa de transição: alterna para suavizar visualmente
+                    self.tiles[y][x]=TILE_STONE if rng.random()<0.7 else TILE_GRASS
 
-        margin=3
+        margin=2
         sx1,sx2=self.sz_x-margin,self.sz_x+_SZ_W+margin
         sy1,sy2=self.sz_y-margin,self.sz_y+_SZ_H+margin
         def in_safe(tx,ty): return sx1<=tx<=sx2 and sy1<=ty<=sy2
 
-        # Clusters de árvores (decoração, não labirinto)
-        for _ in range(20):
+        # Árvores em grupos naturais (não fileiras)
+        for _ in range(22):
             gx=rng.randint(3,MAP_W-4); gy=rng.randint(3,MAP_H-4)
             if in_safe(gx,gy): continue
             if math.hypot(gx-cx,gy-cy)>=r_inner-2: continue
             size=rng.randint(1,3)
             for dy in range(-size,size+1):
                 for dx in range(-size,size+1):
-                    if rng.random()<0.40: continue
+                    if rng.random()<0.38: continue
                     tx,ty=gx+dx,gy+dy
                     if 2<=tx<MAP_W-2 and 2<=ty<MAP_H-2 and not in_safe(tx,ty):
                         if math.hypot(tx-cx,ty-cy)<r_inner-1:
                             self.tiles[ty][tx]=TILE_TREE
 
-        # Rochas esparsas
-        for _ in range(10):
+        # Rochas
+        for _ in range(12):
             gx=rng.randint(3,MAP_W-4); gy=rng.randint(3,MAP_H-4)
             if in_safe(gx,gy): continue
             if math.hypot(gx-cx,gy-cy)>=r_inner-2: continue
@@ -59,7 +65,7 @@ class World:
                             self.tiles[ty][tx]=TILE_STONE
 
         # Lagos
-        for _ in range(6):
+        for _ in range(7):
             gx=rng.randint(4,MAP_W-5); gy=rng.randint(4,MAP_H-5)
             if in_safe(gx,gy): continue
             if math.hypot(gx-cx,gy-cy)>=r_inner-3: continue
@@ -86,12 +92,13 @@ class World:
     def safe_zone_center_px(self):
         return float((self.sz_x+_SZ_W//2)*TILE_SIZE), float((self.sz_y+_SZ_H//2)*TILE_SIZE)
     def door_px(self):
-        return (self.door_tx*TILE_SIZE+TILE_SIZE//2, self.door_ty*TILE_SIZE+TILE_SIZE//2)
+        return (self.door_tx*TILE_SIZE+TILE_SIZE//2,self.door_ty*TILE_SIZE+TILE_SIZE//2)
     def is_walkable(self,tx,ty):
         return 0<=ty<MAP_H and 0<=tx<MAP_W and self.tiles[ty][tx] in (TILE_GRASS,TILE_FLOOR,TILE_DOOR)
     def is_grass(self,tx,ty):
         return 0<=ty<MAP_H and 0<=tx<MAP_W and self.tiles[ty][tx]==TILE_GRASS
-    def walkable_grass_pos(self,rng,min_px=0,max_px=None,min_py=0,max_py=None,exclude_rect=None,max_tries=400):
+    def walkable_grass_pos(self,rng,min_px=0,max_px=None,min_py=0,max_py=None,
+                           exclude_rect=None,max_tries=400):
         max_px=max_px or (MAP_W-2)*TILE_SIZE; max_py=max_py or (MAP_H-2)*TILE_SIZE
         for _ in range(max_tries):
             px=rng.uniform(min_px,max_px); py=rng.uniform(min_py,max_py)
@@ -109,10 +116,12 @@ class World:
         x1=min(MAP_W,x0+SCREEN_W//TILE_SIZE+2); y1=min(MAP_H,y0+SCREEN_H//TILE_SIZE+2)
         for ty in range(y0,y1):
             for tx in range(x0,x1):
-                tile=self.tiles[ty][tx]; color=TILE_COLORS[tile]
+                tile=self.tiles[ty][tx]
                 rx=tx*TILE_SIZE-int(cam_x); ry=ty*TILE_SIZE-int(cam_y)
                 rect=pygame.Rect(rx,ry,TILE_SIZE,TILE_SIZE)
-                pygame.draw.rect(surface,color,rect); self._detail(surface,tile,rect,rx,ry)
+                pygame.draw.rect(surface,TILE_COLORS[tile],rect)
+                self._detail(surface,tile,rect,rx,ry)
+        # Porta pulsante
         drx=self.door_tx*TILE_SIZE-int(cam_x); dry=self.door_ty*TILE_SIZE-int(cam_y)
         pulse=abs(math.sin(self._door_anim*3))
         bc=(int(200+55*pulse),int(180+40*pulse),30)
